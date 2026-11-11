@@ -24,14 +24,14 @@
 //   3. DONE. Signing cert generated on THIS server (24 Jul 2026, RSA-4096,
 //      expires 1 Jun 2059) and uploaded under Certificates & secrets ->
 //      Certificates. To replace it one day:
-//        cd /var/www/crm/_incl/entra
+//        cd /etc/crm
 //        umask 077; openssl req -x509 -newkey rsa:4096 -sha256 -nodes -days 12000 \
 //          -keyout entra-signing.key -out entra-signing.crt \
 //          -subj "/CN=crm.tuggerahservices.com.au/O=Little Miracles/C=AU"
-//        chown nginx:nginx entra-signing.*; chmod 640 entra-signing.key
-//      Mode 640 owned by nginx, NOT 600: this vhost's PHP-FPM pool runs as
-//      www-data (see /etc/nginx/snippets/php-fpm.conf -> php8.5-fpm.sock), and
-//      www-data reads the key through its membership of the nginx group.
+//        chown root:crm entra-signing.*; chmod 640 entra-signing.key
+//      Owned by root, readable by the crm group: the site's PHP pool runs as
+//      the crm user and must read the key but never change it.
+//      Moved here from _incl/entra/ on 11 Nov 2026, when the project went into git.
 //      Upload the .crt ONLY. The .key never leaves this server.
 //   4. API permissions: Microsoft Graph -> Delegated -> openid, profile, email,
 //      User.Read, for sign-in. Plus Application -> User.Read.All with admin
@@ -69,8 +69,10 @@ return [
     'client_id' => 'e43ea10a-cadf-4b16-951d-dbe5fd532883',
 
     // --- Certificate credential (app-only / client_credentials via signed JWT) ---
-    'cert_key'  => __DIR__ . '/entra/entra-signing.key',   // private key (signs the client assertion)
-    'cert_pub'  => __DIR__ . '/entra/entra-signing.crt',   // public cert (thumbprint -> x5t header)
+    // Outside the site folder: never in git, and a branch download from the
+    // Magic panel (git clean -fdx) cannot delete them. See "Secrets" in CLAUDE.md.
+    'cert_key'  => '/etc/crm/entra-signing.key',   // private key (signs the client assertion)
+    'cert_pub'  => '/etc/crm/entra-signing.crt',   // public cert (thumbprint -> x5t header)
 
     // --- OIDC / SSO ---
     // Must match the URI registered in Entra exactly (step 6).

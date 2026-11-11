@@ -1,6 +1,6 @@
 # The Kidsoft API
 
-Governs `_incl/kidsoft.php`, `_incl/kidsoft-cache.php`, `_incl/kidsoft-config.php`.
+Governs `_incl/kidsoft.php`, `_incl/kidsoft-cache.php`, `/etc/crm/kidsoft-config.php`.
 
 ## STRICT READ-ONLY
 
@@ -78,7 +78,8 @@ sweep - see [work-layer.md](work-layer.md), "The backlog travels too", for the h
 - **Always go through `kidsoft($controller, $action, $params = [])`; never build raw curl.**
   It merges the ServiceKey, calls, decodes, and throws `RuntimeException` on a non-get
   action, transport failure, non-JSON, or `Status != OK`.
-- Credentials in `_incl/kidsoft-config.php` (include-only, nginx-blocked).
+- Credentials in `/etc/crm/kidsoft-config.php`, outside the site folder and out of git (see
+  "Secrets" in CLAUDE.md).
 - The key is scoped to the Little Miracles group. `Service/getServices` lists services;
   pass a per-service `ServiceID` to scope a call to a centre.
 - **Casing is not regular** - controller `Guardian` singular, action `getGuardians` plural.

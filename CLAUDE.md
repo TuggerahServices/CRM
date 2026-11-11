@@ -267,8 +267,10 @@ nothing else. See **[auth-security-ops.md](_incl/docs/auth-security-ops.md)**.
 - **jQuery-first** - use it for DOM, events and AJAX. Avoid vanilla DOM APIs unless jQuery
   genuinely cannot do it.
 
-**There is no version control here.** Only the DB is backed up nightly. **Copy a file to the
-scratchpad before overwriting it.**
+**The code is in git, on GitHub as `TuggerahServices/CRM` (private), since 11 Nov 2026**, linked
+from the Magic panel. **Do not commit, push or branch unless asked.** An edit is live the moment
+it is saved and uncommitted work is in no backup (the server's nightly backup skips `.git`), so
+**still copy a file to the scratchpad before a large rewrite.**
 
 ## Database
 
@@ -299,6 +301,21 @@ dbx()->transaction(function($db) {                // auto-rollback on exception
 });
 ```
 
+## Secrets
+
+**No secret is in git, and `.gitignore` keeps it that way.** The first push (11 Nov 2026)
+carried all three below; the commit was rewritten without them before anything was built on it.
+
+| Secret | Kept in | Why there |
+|---|---|---|
+| Database password | `_incl/db-config.php` | The Magic panel writes it, and a branch download keeps this one file |
+| Kidsoft ServiceKey | `/etc/crm/kidsoft-config.php` | Outside the folder: a branch download runs `git clean -fdx`, which deletes every ignored file in it except `db-config.php` and what `crm` owns |
+| Entra private key + cert | `/etc/crm/entra-signing.key`, `.crt` | Same. With the IDs in `entra-config.php` it can send mail as anyone in the tenant |
+
+`/etc/crm` is `root:crm` 0750, files 0640: the site reads them and cannot change them. It is in
+the server's nightly backup (`/etc/serveradmin/backup.json`). **A new secret goes in `/etc/crm`,
+never in the folder.**
+
 Fetch modes: `assoc` (default), `num`, `obj`, `col`, `keyPair`, `group`, `keyPairArr`.
 
 ---
@@ -319,7 +336,6 @@ Fetch modes: `assoc` (default), `num`, `obj`, `col`, `keyPair`, `group`, `keyPai
 │   ├── docs/            # <-- the module documentation indexed above
 │   ├── retired/         # GRAVEYARD, kept on purpose - loaded by nothing, sometimes
 │   │                    # useful. Retire by MOVING here, never by deleting.
-│   ├── entra/           # signing cert + key (chmod 600, git-ignored)
 │   └── littlemiracles_branding/
 ├── api/                 # AJAX/JSON endpoints only
 ├── errors/              # HTML error pages (rendered by nginx for 4xx/5xx)

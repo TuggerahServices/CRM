@@ -44,7 +44,7 @@
 function kidsoft(string $controller, string $action, array $params = []): array {
     static $cfg = null;
     if ($cfg === null) {
-        $cfg = require __DIR__ . '/kidsoft-config.php';
+        $cfg = require '/etc/crm/kidsoft-config.php';
     }
 
     // Read-only guard: the one line that enforces the project's hard rule.
@@ -115,7 +115,7 @@ function kidsoft(string $controller, string $action, array $params = []): array 
 function kidsoft_create_comment(string $serviceId, string $target, string $id,
                                 string $comment, string $type = 'Enrolments'): string {
     static $cfg = null;
-    if ($cfg === null) $cfg = require __DIR__ . '/kidsoft-config.php';
+    if ($cfg === null) $cfg = require '/etc/crm/kidsoft-config.php';
 
     if ($target !== 'child' && $target !== 'guardian') {
         throw new RuntimeException("kidsoft_create_comment: target must be child or guardian, got '{$target}'");
