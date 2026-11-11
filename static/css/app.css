@@ -1,0 +1,3002 @@
+/* Custom styles. Keep minimal; reach for Bootstrap utilities first. */
+@font-face{font-family:'Cascadia Code';font-style:italic;font-weight:200 700;font-display:swap;src:url('../css/fonts/Cascadia_Code-200-700-italic.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Cascadia Code';font-style:normal;font-weight:200 700;font-display:swap;src:url('../css/fonts/Cascadia_Code-200-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Fredoka;font-style:normal;font-weight:300 700;font-display:swap;src:url('../css/fonts/Fredoka-300-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Fuzzy Bubbles';font-style:normal;font-weight:400;font-display:swap;src:url('../css/fonts/Fuzzy_Bubbles-400-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Fuzzy Bubbles';font-style:normal;font-weight:700;font-display:swap;src:url('../css/fonts/Fuzzy_Bubbles-700-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Inter;font-style:italic;font-weight:100 900;font-display:swap;src:url('../css/fonts/Inter-100-900-italic.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url('../css/fonts/Inter-100-900-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Outfit;font-style:normal;font-weight:100 900;font-display:swap;src:url('../css/fonts/Outfit-100-900-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+/* ============================================================
+   Little Miracles theme, restrained on-brand.
+   Palette: purple #2e3192 (light #e6e3fc) · pink #ed387d (light #feeef4).
+   UI font: Outfit. Conventional semantic colours (green/amber/red) kept
+   for status so applied/pending/exception stay readable at a glance.
+   ============================================================ */
+:root{
+  --lm-purple:#2e3192; --lm-purple-dk:#262a7d; --lm-purple-light:#e6e3fc;
+  --lm-pink:#ed387d;   --lm-pink-dk:#d12e6d;   --lm-pink-light:#feeef4;
+  --bs-primary:#2e3192; --bs-primary-rgb:46,49,146;
+  --bs-link-color:#2e3192; --bs-link-color-rgb:46,49,146;
+  --bs-link-hover-color:#ed387d; --bs-link-hover-color-rgb:237,56,125;
+}
+
+/* ============================================================
+   THE PALETTE. Use a token; do not add a hex. Added 10 Aug 2026.
+
+   This stylesheet had grown **96 distinct hex literals** and it
+   showed - the modules had visibly stopped matching each other,
+   which is what Broc called out. Most of it was not deliberate:
+   three greys within 0.006 of one lightness step (#6c6a8a,
+   #6b6889, #6c6a80), fourteen near-whites, four different amber
+   washes, and two different greens for the same "good" band on
+   two different heat scales. None of that was a decision anybody
+   made; it was a decision nobody made, fourteen times.
+
+   Consolidated to 58 by clustering in OKLCH and collapsing any
+   group inside dL 0.025 / dC 0.03 of the same hue - below the
+   threshold at which the difference is visible, so it changed
+   the look of nothing and the consistency of everything.
+
+   THE RULE: every status has exactly THREE steps and no more --
+   a FILL (for a mark or a solid), a TEXT (dark enough to read on
+   white AND on its own wash), and a WASH (a tinted background).
+   A -mid step exists only for the two heat scales. If you need a
+   colour, it is one of these; if it genuinely is not, add a
+   token here with its measured contrast, so the next person
+   inherits a name instead of guessing a hex.
+   ============================================================ */
+:root{
+  /* Ink and neutrals - one hue family (purple-tinted grey), five steps. */
+  --lm-ink:#2b2b3a;        /* 13.9:1 - body copy                        */
+  --lm-ink-2:#4a4866;      /*  8.7:1 - headings inside components       */
+  --lm-ink-3:#5c5977;      /*  6.7:1 - table headings, emphasis text     */
+  --lm-muted:#6c6a8a;      /*  5.2:1 - secondary text, passes as text   */
+  --lm-muted-2:#8a87a5;    /*  3.5:1 - large text and icons only        */
+  --lm-faint:#9a97b5;      /*  2.8:1 - decoration, never text           */
+  --lm-faint-2:#a5a2b8;    /*  2.5:1 - decoration, never text           */
+
+  /* Surfaces and rules. */
+  --lm-surface:#faf9ff;    /* the tint under a card or a hovered row     */
+  --lm-surface-head:#f4f3f9;/* a table's header row - between the two:
+                              1.05:1 off the page it would otherwise
+                              vanish into, muted text 4.7:1 on it      */
+  --lm-surface-2:#eeedf6;  /* one step down: inset panels, tracks        */
+  --lm-line:#e4e1f3;       /* hairlines                                  */
+  --lm-line-2:#c9c7d4;     /* a hairline that has to be seen             */
+
+  /* Status. Three steps each, and the same three everywhere. */
+  --lm-good:#1a7f4b;       /* 5.0:1 fill  */
+  --lm-good-text:#0f5130;  /* 9.4:1 text  */
+  --lm-good-wash:#e7f6ee;
+  --lm-good-mid:#bfe5cd;   /* heat scales only */
+
+  --lm-warn:#ffa800;       /* 2.2:1 FILL ONLY - never text on white     */
+  --lm-warn-text:#ee9d00;  /* This is fine                               */
+  --lm-warn-wash:#fdf3df;
+  --lm-warn-mid:#ffe3a3;   /* heat scales only */
+  --lm-warn-ink:#6b4a00;   /* 6.4:1 - ink ON the amber mid step */
+  --lm-warn-deep:#a55c00;  /* 4.6:1 ON the wash - a glyph sitting on --lm-warn-wash.
+                              --lm-warn-text is 2.0:1 there, under the 3:1 an icon needs. */
+
+  --lm-danger:#a32020;     /* 7.5:1 fill  */
+  --lm-danger-text:#7d1a1a;/* 10.3:1 text */
+  --lm-danger-wash:#fbe3e3;
+  --lm-danger-mid:#f9bcbc; /* heat scales only */
+
+  /* "A family has asked for this day." Not a status - nothing is wrong and
+     nothing is good about it - so it is its own hue rather than a step on the
+     good/warn/danger ring. It was already here as a bare hex on .dot-req; it now
+     has a name because the roster marks the same fact with an hourglass, and one
+     fact rendered in two colours on two screens is what the stat-tile and
+     mark-bar consolidations were both about. 4.9:1 on white.               */
+  --lm-req:#3764b6;
+  /* The wash under it, for a filled box rather than a glyph. Same pairing as
+     --lm-good / --lm-good-wash; --lm-req on it is 4.5:1. */
+  --lm-req-wash:#e3ecfd;
+
+  /* STAFFING AGE BANDS - tones of the confirmed chip's green, lightest under 2,
+     darkest 3 and over (14 Oct 2026; see STAFFING_AGE_BANDS in rooms.php). An
+     ORDERED scale, so a one-hue lightness ramp: OKLCH L 0.960 / 0.865 / 0.771,
+     hue 157-163. The youngest band IS the good wash, so it is the chip as it
+     always looked.
+     STEPS OF 0.095, NOT THE 0.07 TRIED FIRST. Reusing --lm-good-mid for the
+     middle gave 0.072 / 0.074 - inside the 0.06 ramp gate, and in a screenshot of
+     Kanwal's Shining Stars roster the 2-to-3s and the 3-and-overs could be told
+     apart only by looking for it, which is the one comparison this exists for.
+     Ink on the darkest 7.0:1; the --lm-good edge still reads on it at 2.5:1. */
+  --lm-age-0:var(--lm-good-wash);
+  --lm-age-1:#b0e0c2;
+  --lm-age-2:#7cc89b;
+
+  /* "SOMEBODY IS ALREADY TALKING TO THIS FAMILY" - the row wash on the queue
+     (15 Oct 2026, Broc). Not a status, so not a step on the good/warn/danger
+     ring: brand purple's hue at the lightness where the row's small text still
+     passes. The binding text is --lm-muted at 4.55:1 here (4.5 needed); ink is
+     12.3:1, --lm-purple 9.4:1, --lm-req 5.1:1. --lm-purple-light was the obvious
+     pick and is too dark for that - --lm-muted falls to 4.12:1 on it.      */
+  --lm-engaged-wash:#f1effd;
+}
+body{font-family:Outfit,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--lm-ink)}
+h1,h2,h3,h4,h5,h6{font-family:Outfit,system-ui,sans-serif;color:var(--lm-purple)}
+a{color:var(--lm-purple)}
+a:hover{color:var(--lm-pink)}
+.form-control:focus,.form-select:focus{border-color:#8f92c9;box-shadow:0 0 0 .2rem rgba(46,49,146,.15)}
+
+/* --- Elevation: dropdowns and modals ----------------------------------------
+   Bootstrap is built with $enable-shadows off, so --bs-dropdown-box-shadow and
+   --bs-modal-box-shadow are declared and then never applied - every menu and
+   every dialog sat flat on the page with a hairline border doing all the work
+   of lifting it off what it covers.
+
+   The geometry is the search palette's, which was the ONE surface in the app
+   that already had a shadow, so the rest now match it rather than introducing
+   a second look. The menu shadow is the shorter throw of the two: a dropdown
+   sits just above the page, a dialog covers it.
+
+   The two tints differ ON PURPOSE, because of what each one falls on. A menu
+   falls on white, where the brand purple at .18 reads as a soft lift. A dialog
+   falls on the .5 black backdrop, and MEASURED on screen the same purple at
+   .22 was all but invisible against it - so the dialog gets a darker, deeper
+   purple. Both were compared side by side against the unshadowed capture.
+
+   Bootstrap declares neither at (0,1,0), so a bare class wins on source order.
+   `.search-modal .modal-content` is (0,2,0), so its own box-shadow was removed
+   in the same breath - it would have kept the old value and been the one modal
+   that did not match. */
+.dropdown-menu{box-shadow:0 .5rem 1.5rem rgba(46,49,146,.18)}
+.modal-content{box-shadow:0 1.5rem 3rem rgba(23,25,73,.45)}
+
+/* Primary → purple */
+.btn-primary{--bs-btn-bg:var(--lm-purple);--bs-btn-border-color:var(--lm-purple);
+  --bs-btn-hover-bg:var(--lm-purple-dk);--bs-btn-hover-border-color:var(--lm-purple-dk);
+  --bs-btn-active-bg:var(--lm-purple-dk);--bs-btn-active-border-color:var(--lm-purple-dk);
+  --bs-btn-disabled-bg:var(--lm-purple);--bs-btn-disabled-border-color:var(--lm-purple)}
+.btn-outline-primary{--bs-btn-color:var(--lm-purple);--bs-btn-border-color:var(--lm-purple);
+  --bs-btn-hover-bg:var(--lm-purple);--bs-btn-hover-border-color:var(--lm-purple);
+  --bs-btn-active-bg:var(--lm-purple);--bs-btn-active-border-color:var(--lm-purple)}
+.bg-primary{background-color:var(--lm-purple)!important}
+.text-primary{color:var(--lm-purple)!important}
+/* The pager's current page. Bootstrap compiles its active and focus colours as
+   the literal #0d6efd rather than var(--bs-primary), so the override above never
+   reaches them and the first pager in the app (the Dashboard's "View more..."
+   dialog, 6 Nov 2026) drew its current page in stock Bootstrap blue. */
+.pagination{--bs-pagination-active-bg:var(--lm-purple);--bs-pagination-active-border-color:var(--lm-purple);
+  --bs-pagination-focus-box-shadow:0 0 0 .25rem rgba(46,49,146,.25)}
+
+/* ============================================================
+   Warning amber - THREE steps, and which one you want depends
+   only on whether it is a FILL, TEXT, or a BACKGROUND.
+   Revised 10 Aug 2026. Values live in the palette block above.
+
+   --lm-warn       #ee9d00 (Broc's pick). FILL ONLY: buttons,
+                   badges, borders, meter fills, an icon on a
+                   tint. 2.22:1 on white, so it never carries
+                   text on white - but as a fill it is a healthy
+                   orange, which is the whole point. Ink on top of
+                   it is #332200 (6.9:1), never white (2.2:1).
+   --lm-warn-text  #a55c00. 5.08:1 on white and 4.66:1 on the
+                   wash, so it passes for SMALL text anywhere.
+   --lm-warn-wash  #fdf3df. The one amber background. There were
+                   four of these.
+
+   WHAT THE OLD PAIR GOT WRONG, and it was not the hue. The text
+   amber was #8a6100 and read as mustard at any size above about
+   20px - Broc's word for it was vomit, on the dashboard's
+   attention counts. But #8a6100 and #ee9d00 are almost the same
+   hue (80 vs 72 deg). What separates a healthy orange from
+   mustard is CHROMA and LIGHTNESS: #8a6100 sat at OKLCH C 0.108,
+   a dull dark yellow, where #a55c00 holds C 0.128 at hue 61 --
+   18% more colourful and 19 deg further from yellow - at the
+   same lightness. So it reads as orange AND passes contrast.
+
+   Bootstrap's #ffc107 remains unusable: 1.63:1 on white.
+
+   IF YOU CHANGE EITHER VALUE, re-check the text against the WASH
+   and not just against white. #ad6200 was tried first and looked
+   right on a card, but the chips and badges sit on the wash,
+   where it fell to 4.2:1 - under the 4.5 small text needs. The
+   wash is the binding surface, not the card.
+   ============================================================ */
+:root{
+  --bs-warning:var(--lm-warn); --bs-warning-rgb:238,157,0;
+  --bs-warning-text-emphasis:#8a4a00;   /* 6.3:1 on the wash below */
+  --bs-warning-bg-subtle:var(--lm-warn-wash);
+  --bs-warning-border-subtle:var(--lm-warn-mid);
+}
+/* 5.08:1 on white, 4.66:1 on the washes. !important because Bootstrap's own
+   .text-warning is a utility and would otherwise win on source order. */
+.text-warning{--bs-text-opacity:1;color:var(--lm-warn-text)!important}
+/* On the solid amber, dark ink rather than white: #332200 is 6.9:1, white is
+   2.2:1 and would be the same unreadable problem in reverse. */
+.btn-warning{--bs-btn-bg:var(--lm-warn);--bs-btn-border-color:var(--lm-warn);--bs-btn-color:#332200;
+  --bs-btn-hover-bg:#dc9000;--bs-btn-hover-border-color:#dc9000;--bs-btn-hover-color:#332200;
+  --bs-btn-active-bg:#c98200;--bs-btn-active-border-color:#c98200;--bs-btn-active-color:#332200;
+  --bs-btn-disabled-bg:var(--lm-warn);--bs-btn-disabled-border-color:var(--lm-warn);--bs-btn-disabled-color:#332200}
+.text-bg-warning{background-color:var(--lm-warn)!important;color:#332200!important}
+.bg-warning{background-color:var(--lm-warn)!important}
+.border-warning{border-color:var(--lm-warn)!important}
+
+/* ============================================================
+   App shell: sidebar left, content right.
+   The core artifact here is a wide room x weekday grid, so the
+   navigation moved off the top and stopped spending a row of
+   vertical space (and the full page width) on four links.
+   ============================================================ */
+body{background:var(--lm-surface)}
+.app-shell{display:flex;min-height:100vh;align-items:flex-start}
+
+.app-sidebar{flex:0 0 var(--sb-w);width:var(--sb-w);background:#fff;
+  border-right:1px solid var(--lm-purple-light);
+  position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  padding:.9rem .6rem .6rem}
+/* NO overflow:hidden here. The user menu is a Bootstrap dropdown inside this
+   box, and clipping it would swallow the whole menu once the rail is 4rem wide.
+   Nothing needs clipping anyway: the logo was being cut off by flex-shrink on
+   .sb-brand, which is fixed at the source with flex:0 0 auto. */
+:root{--sb-w:12.5rem}
+.sb-collapsed{--sb-w:4.25rem}
+
+/* min-width:0 is load-bearing: without it a wide grid inside a flex child
+   refuses to shrink and pushes the whole page sideways instead of scrolling
+   inside its own container. */
+.app-content{flex:1 1 auto;min-width:0}
+.app-main{max-width:100%}
+
+/* flex:0 0 auto on the ends. In a column flex box a child may shrink BELOW its
+   content, and that is what was clipping the bottom of the logo - the brand
+   was being squeezed by the nav rather than keeping its own height. */
+.sb-brand{flex:0 0 auto;padding:.1rem .35rem 1rem;text-align:center}
+.sb-home{display:block;line-height:0}
+.sb-logo-full,.sb-logo-icon{display:block;line-height:0;margin:0 auto}
+.sb-logo-full svg,.sb-logo-icon svg{width:100%;height:auto;display:block}
+.sb-logo-full{width:100%;max-width:10rem}
+.sb-logo-icon{display:none;width:100%;max-width:2.4rem}
+.sb-tag{color:var(--lm-muted-2);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;margin-top:.5rem}
+
+.sb-nav{display:flex;flex-direction:column;gap:.15rem;flex:1 1 auto;min-height:0;overflow-y:auto}
+.sb-link{display:flex;align-items:center;gap:.65rem;padding:.55rem .7rem;border-radius:.5rem;
+  color:var(--lm-ink-2);font-weight:500;text-decoration:none;line-height:1.2;white-space:nowrap}
+.sb-link i{width:1.15rem;text-align:center;color:var(--lm-faint);flex:0 0 auto;font-size:1rem}
+.sb-link:hover{background:var(--lm-surface);color:var(--lm-purple)}
+.sb-link:hover i{color:var(--lm-purple)}
+.sb-link.active{background:var(--lm-purple-light);color:var(--lm-purple);font-weight:600}
+.sb-link.active i{color:var(--lm-pink)}
+
+/* Search launcher. Sits above the four screens because it is not a fifth place
+   to go - it is where you start when the phone rings. Styled as a control, not
+   a nav link, so it does not read as a section of the app. */
+.sb-search{display:flex;align-items:center;gap:.65rem;width:100%;margin-bottom:.6rem;
+  padding:.5rem .7rem;border:1px solid var(--lm-purple-light);border-radius:.5rem;
+  background:var(--lm-surface);color:var(--lm-muted);font-size:.88rem;white-space:nowrap;
+  font-family:inherit;text-align:left}
+.sb-search:hover{background:var(--lm-purple-light);color:var(--lm-purple);border-color:#cfc9f5}
+.sb-search i{width:1.15rem;text-align:center;flex:0 0 auto;color:var(--lm-faint)}
+.sb-search:hover i{color:var(--lm-purple)}
+.sb-kbd{margin-left:auto;flex:0 0 auto;font-size:.66rem;color:var(--lm-muted-2);
+  background:#fff;border:1px solid var(--lm-line);border-radius:.25rem;padding:.05rem .3rem}
+.sb-collapsed .sb-search{justify-content:center;gap:0;padding-left:.35rem;padding-right:.35rem}
+.sb-collapsed .sb-search span,.sb-collapsed .sb-kbd{display:none}
+@media (max-width:991.98px){
+  .sb-search{width:auto;margin:0 .25rem 0 0;padding:.45rem .6rem}
+  .sb-search span,.sb-kbd{display:none}
+}
+
+.sb-foot{flex:0 0 auto;border-top:1px solid var(--lm-surface-2);padding-top:.4rem;margin-top:.4rem}
+.sb-user{display:flex;align-items:center;gap:.55rem;padding:.45rem .7rem;border-radius:.5rem;
+  color:var(--lm-ink-2);text-decoration:none;font-size:.88rem;white-space:nowrap}
+.sb-user:hover{background:var(--lm-surface);color:var(--lm-purple)}
+.sb-user i{width:1.15rem;text-align:center;flex:0 0 auto;font-size:1rem}
+.sb-user::after{margin-left:auto;flex:0 0 auto}
+
+.sb-toggle{display:flex;align-items:center;gap:.65rem;width:100%;
+  padding:.45rem .7rem;border:0;border-radius:.5rem;background:none;
+  color:var(--lm-muted-2);font-size:.82rem;white-space:nowrap;font-family:inherit}
+.sb-toggle:hover{background:var(--lm-surface);color:var(--lm-purple)}
+.sb-toggle i{width:1.15rem;text-align:center;flex:0 0 auto;transition:transform .15s}
+
+/* --- Collapsed: an icon rail ------------------------------------------------
+   Labels go, the wordmark swaps for the icon, and everything centres. The links
+   keep their title attributes, so hovering still names them. */
+.sb-collapsed .sb-logo-full{display:none}
+.sb-collapsed .sb-logo-icon{display:block}
+.sb-collapsed .sb-tag{display:none}
+.sb-collapsed .sb-brand{padding-bottom:.75rem}
+.sb-collapsed .sb-link,
+.sb-collapsed .sb-user,
+.sb-collapsed .sb-toggle{justify-content:center;gap:0;padding-left:.35rem;padding-right:.35rem}
+.sb-collapsed .sb-link span,
+.sb-collapsed .sb-user span,
+.sb-collapsed .sb-toggle span{display:none}
+.sb-collapsed .sb-user::after{display:none}
+.sb-collapsed .sb-toggle i{transform:rotate(180deg)}
+
+/* Narrow screens: the sidebar lies down and becomes a compact bar. No JS, no
+   backdrop, no toggle state - this is an internal desktop tool and a slide-over
+   is machinery for a case that barely occurs. */
+@media (max-width:991.98px){
+  .app-shell{display:block}
+  .app-sidebar{width:auto;height:auto;position:static;flex-direction:row;align-items:center;
+    gap:.5rem;padding:.4rem .75rem;border-right:0;border-bottom:1px solid var(--lm-purple-light);
+    overflow-x:auto;overflow-y:hidden}
+  .sb-brand{padding:0 .5rem 0 0}
+  .sb-logo-full{max-width:7rem}
+  .sb-tag{display:none}
+  .sb-nav{flex-direction:row;gap:.25rem;overflow:visible}
+  .sb-link{padding:.45rem .6rem}
+  .sb-foot{border-top:0;margin:0;padding:0;display:flex;align-items:center}
+  .sb-user span{display:none}
+  /* Collapsing is a wide-screen affordance; the bar is already compact here. */
+  .sb-toggle{display:none}
+}
+/* inline-block (not flex): an inline <svg> with a viewBox but no width/height
+   attributes has no intrinsic width, so as a flex item it collapses to 0. */
+.lm-logo{display:inline-block;line-height:0}
+.lm-logo svg{height:34px;width:auto;display:block}
+/* Inline logo header on the standalone public holiday-request form.
+   Capped at 360px wide and centred (parent is .text-center). */
+.lm-logo-form{display:inline-block;line-height:0;width:100%;max-width:360px}
+.lm-logo-form svg{width:100%;height:auto;display:block}
+
+/* Scrollable terms box on the public holiday-request form. Fades the bottom edge
+   to hint there's more to scroll; background sits above the card. */
+.hr-terms{
+  max-height:11rem;overflow-y:auto;background:var(--lm-surface);
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  mask-image:linear-gradient(to bottom,#000 calc(100% - 1.25rem),transparent);
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 1.25rem),transparent);
+}
+.hr-terms:hover,.hr-terms:focus-within{mask-image:none;-webkit-mask-image:none}
+/* Holiday requests queue: collapse the empty "matched" indicator so its margin
+   doesn't push the search box ~4px above the aligned Centre select. */
+.hrq-matched:empty{display:none}
+
+/* ============================================================
+   Centre strip - which centre you are working in, app-level.
+   Now that the four screens live in the sidebar this is the only
+   thing across the top, so it is styled as light pills rather
+   than a second tab bar competing with the navigation.
+   ============================================================ */
+.centre-bar{background:#fff;border-bottom:1px solid var(--lm-surface-2);padding:.5rem .25rem}
+/* Narrow screens scroll the strip sideways rather than wrapping it onto a
+   second row, which would shift the whole page down. */
+.centre-tabs{overflow-x:auto;overflow-y:hidden;border-bottom:0;scrollbar-width:thin;gap:.2rem}
+.centre-tabs::-webkit-scrollbar{height:3px}
+.centre-tabs::-webkit-scrollbar-thumb{background:var(--lm-purple-light);border-radius:3px}
+/* margin-bottom:0 undoes Bootstrap's -1px nudge, which exists to tuck a tab over
+   the .nav-tabs bottom border - and that border is removed above. */
+.centre-tabs .nav-link{border:0;border-radius:2rem;margin-bottom:0;
+  color:var(--lm-muted);font-weight:500;white-space:nowrap;padding:.3rem .8rem;font-size:.9rem}
+.centre-tabs .nav-link:hover{color:var(--lm-purple);background:var(--lm-surface)}
+.centre-tabs .nav-link.active{color:#fff;background:var(--lm-purple);font-weight:600}
+/* Tabs on the left, Report Issue pinned to the right (13 Oct 2026). min-width:0
+   is what lets the tab strip shrink and scroll sideways rather than shove the
+   button off the end; margin-left:auto keeps the button right-hand when there
+   are no tabs at all. min-height is a tab's height, so the bar is the same
+   depth with or without them. */
+.cb-row{display:flex;align-items:center;gap:.75rem;min-height:1.95rem}
+.cb-centres{flex:1 1 auto;min-width:0}
+.cb-issue{flex:0 0 auto;margin-left:auto;font-size:.85rem}
+
+/* ============================================================
+   Shared page furniture
+   ============================================================ */
+
+/* Title + strapline on the left, the screen's controls on the right. Every
+   screen used slightly different flex utilities for this; they now agree. */
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+  gap:.75rem 1.5rem;margin-bottom:1rem}
+.page-head h1{margin-bottom:.15rem}
+.page-head-text{min-width:min(24rem,100%);flex:1 1 24rem}
+.page-head-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+
+/* Year / week steppers. The label is a display cell inside the button group,
+   not a disabled button - it must not read as something you failed to click. */
+.year-nav .yn-label,.week-nav .wn-label{background:#fff;border:1px solid var(--bs-border-color);
+  color:var(--lm-purple);font-weight:600;font-variant-numeric:tabular-nums;
+  cursor:default;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.year-nav .yn-label{min-width:4.75rem}
+/* The Placement board's From date (16 Oct 2026): sized to a dd/mm/yyyy date and
+   its picker icon, and never wrapped away from its label. */
+.board-from{width:auto;flex-wrap:nowrap}
+.board-from .form-control{width:10.5rem;flex:0 0 auto}
+.week-nav .wn-label{min-width:11.5rem;font-size:.9rem}
+
+/* --- TOOLTIPS -------------------------------------------------------------
+   Bootstrap's tooltip now answers every `title=` in the app; app.js explains how
+   and why. Three things the native tooltip did for free that the Bootstrap one
+   has to be told:
+
+   - NEWLINES. A placement cell's tooltip is a heading plus a "- " list joined
+     with \n, and a plain div collapses those into spaces, running the whole
+     thing into one unreadable sentence. pre-line keeps the breaks WITHOUT
+     turning html:true on, so every title stays escaped text and esc() at the
+     call site still means what it says.
+   - ROOM. The default 200px wrapped Tenure's column headings - whole sentences,
+     and the reason the column is legible at all - into a tall thin ribbon.
+   - LEFT ALIGNMENT. Bootstrap centres the text, which reads as a caption on one
+     line and as ragged prose on four.
+
+   z-index sits just UNDER .toast-stack (1080) and above the modal (1055): a
+   tooltip must clear a dialog, and a save that failed must clear the tooltip. */
+.tooltip{--bs-tooltip-max-width:22rem;--bs-tooltip-zindex:1075;
+  --bs-tooltip-bg:var(--lm-ink);--bs-tooltip-opacity:1}
+.tooltip-inner{white-space:pre-line;text-align:left}
+
+/* Toasts: fixed corner stack, so a message never reflows the page under the
+   pointer. z-index sits above Bootstrap's modal (1055) - a save that failed
+   inside a dialog has to be readable without closing the dialog first.
+   pointer-events pass through the empty stack so it never eats a click. */
+.toast-stack{position:fixed;top:.85rem;right:.85rem;z-index:1080;width:min(24rem,calc(100vw - 1.7rem));
+  display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast-stack .alert{pointer-events:auto;margin-bottom:0}
+
+/* confirmModal() in app.js - the app's yes/no question, which replaced the
+   browser's own confirm() and prompt() (10 Nov 2026). It opens over another
+   dialog as often as not, and Bootstrap gives every modal 1055 and every
+   backdrop 1050, so its backdrop would fall BEHIND the dialog it is asking
+   about. One layer up: its backdrop over any open dialog, itself over that,
+   still under the tooltips (1075) and the toasts (1080). */
+.modal-ask{--bs-modal-zindex:1065}
+.modal-backdrop.modal-ask-backdrop{z-index:1060}
+
+/* Long grids: keep the column headings visible while scrolling down a centre's
+   rooms. The table scrolls inside its own card rather than with the page --
+   position:sticky does nothing inside Bootstrap's .table-responsive, because an
+   overflow box that never scrolls pins the header to itself and not to the
+   viewport. Scrolling here instead also keeps the summary tiles and the toolbar
+   on screen, which is where the numbers you are scrolling to compare live.
+   The 21rem is a rough allowance for the chrome above (nav, centre bar, page
+   head, summary tiles); it is a constant to tune, not a measurement. max()
+   rather than a min-height: a short window still gets a usable 20rem, and a
+   two-row table still renders two rows tall, not a box of whitespace.
+   THE CONSTANT IS ONLY THE FLOOR. fitScrollers() in app.js measures where the
+   box actually starts and caps it to the window, because 21rem is too little on
+   a screen carrying tiles and a banner (the Waitlist) and the card then hung
+   past the bottom of the window, giving the PAGE a second scrollbar with barely
+   any travel in it. Keep this value sane anyway: it is what renders before the
+   script runs, and all there is if it does not. */
+/* position:relative is LOAD-BEARING and is not cosmetic. An absolutely
+   positioned descendant whose containing block is OUTSIDE this box does not get
+   clipped by it - Chrome adds its static position to the PAGE's scroll area
+   instead. Bootstrap's .visually-hidden is position:absolute, and the Waitlist
+   puts one inside every row's icon button, so row 118's hidden label sat
+   16,000px down the document: the page scrolled miles past the end of the
+   sidebar into blank space. Making this box the containing block puts them back
+   inside the scroller. Measured on /waitlist: 16,792px document -> 964px. */
+.table-scroll{position:relative;overflow:auto;max-height:max(20rem,calc(100vh - 21rem))}
+.table-sticky thead th{position:sticky;top:0;z-index:2;background:#fff;
+  box-shadow:inset 0 -1px 0 var(--lm-purple-light)}
+.table-sticky thead.table-light th{background:var(--lm-surface-head)}
+/* A TABLE RUN FLUSH TO A CARD'S EDGE MUST BE CLIPPED TO THE CARD'S CURVE. The
+   scroller is square, so the header's and last row's corner cells painted over
+   the card's rounded border and a few pixels of each corner read as cut off.
+   border-radius on an overflow box clips everything inside it, sticky header
+   included. First/last-child only, as Bootstrap does for .list-group: a scroller
+   with a header above it does not touch the card's top corners. */
+.card>.table-scroll:first-child{border-top-left-radius:var(--bs-card-inner-border-radius);
+  border-top-right-radius:var(--bs-card-inner-border-radius)}
+.card>.table-scroll:last-child{border-bottom-left-radius:var(--bs-card-inner-border-radius);
+  border-bottom-right-radius:var(--bs-card-inner-border-radius)}
+/* The board grid's totals row is a footer in all but name: pin it too, so the
+   week's free-place count stays put while you scroll the rooms. */
+.table-scroll .grid-totals th,.table-scroll .grid-totals td{position:sticky;bottom:0;z-index:2}
+
+/* An input-group whose addon is a decoration (the search magnifier) should focus
+   as one control, not leave the addon outside a ring drawn round the input. */
+.input-group:focus-within{border-radius:var(--bs-border-radius);
+  box-shadow:0 0 0 .2rem rgba(46,49,146,.15)}
+.input-group:focus-within .input-group-text,
+.input-group:focus-within .form-control{border-color:#8f92c9}
+.input-group:focus-within .form-control:focus{box-shadow:none}
+
+/* Segmented on/off filter (Open | All). A pair of visible states beats a switch
+   whose meaning depends on remembering which way is which. */
+.seg .btn{--bs-btn-color:var(--lm-muted);--bs-btn-border-color:var(--bs-border-color);
+  --bs-btn-hover-bg:var(--lm-purple-light);--bs-btn-hover-color:var(--lm-purple);
+  --bs-btn-hover-border-color:var(--bs-border-color);
+  --bs-btn-active-bg:var(--lm-purple);--bs-btn-active-color:#fff;
+  --bs-btn-active-border-color:var(--lm-purple);font-weight:500}
+
+/* Brand touches on structural chrome (not on functional status colours) */
+.card-header.bg-body-tertiary{background:var(--lm-purple-light)!important;color:var(--lm-purple)}
+.badge.text-bg-info{background-color:var(--lm-pink)!important;color: #fff!important;}
+.badge.text-bg-secondary{background-color:var(--lm-purple)!important;color:#fff!important;}
+
+/* "Consider archiving" (staleBadge in app.js): an outline, no fill. Broc asked for it to be
+   "much more subtle" - the filled amber read as an alarm on a row that only wants a phone call.
+   Muted ink and a seen hairline, so it is still distinct from the white "At risk" chips. */
+.badge.badge-stale{background:transparent;color:var(--lm-muted);border:1px solid var(--lm-line-2);
+  font-weight:400}
+.badge.badge-stale i{color:var(--lm-muted-2)}
+
+/* ROOM MARKS - the five room families, drawn in front of a room
+   name. Sized in `em` and baseline-shifted so one sits in a line of
+   text like an emoji rather than as a fixed-size icon: it grows with
+   whatever it is beside, so the same mark works in a 0.8rem table
+   cell and an h5. `currentColor` for the same reason - the mark is
+   part of the name, not a second thing to look at. The sprite itself
+   is inlined once per page and never rendered. */
+.rm-sprite{position:absolute;width:0;height:0;overflow:hidden}
+.rm-ico{width:1em;height:1em;vertical-align:-.125em;margin-right:.35em;
+  fill:currentColor;flex:0 0 auto;opacity:.85}
+
+/* ============================================================
+   MARKS - bars, stacks and legends. ONE geometry, app-wide.
+   ------------------------------------------------------------
+   THIS WAS TWO COMPONENTS AND IT SHOULD ONLY EVER HAVE BEEN ONE
+   (10 Aug 2026). The Dashboard drew `.dbar` / `.dstack` at 7-9px
+   with a 2px surface gap between touching fills and a 4px rounded
+   data end; the Waitlist drew `.wl-ov-plot` at 8px with its
+   segments butted together inside a fully rounded pill. Same app,
+   same kind of card, same kind of row, two different marks - the
+   stat tile's six-implementations problem in another channel.
+   The Dashboard's specs won; the Waitlist markup moved onto them.
+
+   The specs, and they are the whole reason this block exists:
+
+     * thin marks (7-9px), never a thick saturated block
+     * a 4px rounded DATA END, square at the baseline
+     * a 2px gap in the SURFACE colour separates touching fills -
+       never a border drawn round a mark to do that job
+     * the figure sits OUTSIDE the mark, in ink, tabular, so the
+       numbers align down a column and no text wears a mark colour
+     * identity comes from a swatch in a legend, not from the
+       reader telling two fills apart
+
+   COLOUR IS NOT SHARED, AND THAT IS DELIBERATE. Geometry is a
+   house style; a palette is chosen from the MARK'S JOB (see the
+   round-progress block below). So the segment fills live with the
+   screen that owns them: the Dashboard's round is an ORDERED
+   scale and takes the --lm-ramp lightness ramp, the Waitlist's
+   overlap is a whole and its part with no order and takes the
+   --lm-mark identity pair. Do not "unify" those into one set.
+
+   `.mk-track` is drawn only where the bar is scaled to something
+   OUTSIDE the row (the biggest queue in the column), so a short
+   bar reads as short rather than as missing. A part-to-whole
+   stack fills its own width and needs no track.
+   ============================================================ */
+.mk-cell{display:inline-flex;align-items:center;gap:.5rem;width:100%}
+/* display:block, not the inline default, so a track works standalone in a grid
+   cell as well as as a flex item inside .mk-cell - a percentage width does not
+   apply to an inline box, and the bar inside is sized in percent. */
+.mk-track{display:block;flex:1 1 auto;min-width:2rem;line-height:0}
+.mk-track.mk-scale{background:var(--lm-surface-2);border-radius:4px}
+.mk-bar{display:inline-block;height:7px;min-width:2px;border-radius:0 4px 4px 0;
+  background:var(--lm-mark);vertical-align:middle}
+.mk-v{flex:0 0 auto;min-width:2.25rem;text-align:right;font-size:.8125rem;font-weight:600;
+  font-variant-numeric:tabular-nums}
+/* The stack. Segments with nothing in them are never emitted, or an empty one
+   would spend a 2px gap and read as a hairline of a colour that is not there. */
+.mk-stack{display:flex;gap:2px;height:9px;width:100%;vertical-align:middle}
+.mk-stack>span{height:100%;min-width:2px}
+.mk-stack>span:first-child{border-radius:4px 0 0 4px}
+.mk-stack>span:last-child{border-radius:0 4px 4px 0}
+/* The identity channel that does not depend on telling two colours apart. */
+.mk-legend{display:inline-flex;flex-wrap:wrap;gap:.9rem;font-size:.8125rem;color:var(--lm-ink-3)}
+.mk-key{display:inline-flex;align-items:center;gap:.35rem}
+.mk-sw{display:inline-block;width:.7rem;height:.7rem;border-radius:2px;flex:0 0 auto}
+
+/* ============================================================
+   Placement board
+   Rooms down, weekdays across, named children in the cells.
+   Status colours deliberately echo the workbook's legend so the
+   team reads the board the way they read the spreadsheet, but
+   muted to background tints - saturated fills at this density
+   are unreadable, and the text has to carry.
+   ============================================================ */
+.board-table{table-layout:fixed}
+.board-table th{width:20%;font-size:.8rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted);
+  border-bottom:1px solid var(--lm-purple-light);padding:.4rem .6rem}
+.board-cell{vertical-align:top;padding:.5rem .6rem;border-left:1px solid rgba(0,0,0,.05)}
+.board-cell .cell-head{font-size:.78rem;margin-bottom:.25rem}
+.board-cell .cell-quota{font-size:.7rem;margin-bottom:.3rem}
+.cell-chips{display:flex;flex-direction:column;gap:.2rem;margin-bottom:.3rem}
+
+.place-chip{font-size:.82rem;line-height:1.25;padding:.2rem .45rem;border-radius:.3rem;cursor:pointer;
+  border-left:3px solid transparent;background:var(--lm-surface);transition:filter .1s}
+.place-chip:hover{filter:brightness(.95)}
+.place-flag{font-size:.68rem;opacity:.6;margin-left:.15rem}
+.add-child{font-size:.75rem}
+
+/* Status vocabulary, straight from the workbook legend. */
+.st-unset            {background:var(--lm-surface);border-left-color:var(--lm-line-2)}
+.st-confirmed        {background:var(--lm-good-wash);border-left-color:var(--lm-good)}
+.st-waiting_paperwork{background:#f4f0de;border-left-color:#7b6600}
+.st-offered          {background:var(--lm-danger-wash);border-left-color:var(--lm-danger)}
+.st-move_rooms       {background:#def5f8;border-left-color:#007487}
+.st-ending_care      {background:#fceaf6;border-left-color:#974383}
+.st-swap_days        {background:#f3ecfe;border-left-color:#7352ab}
+.st-dropping_day     {background:#e8f0ff;border-left-color:#3764b6}
+.st-waitlist         {background:#fdf0dc;border-left-color:var(--lm-warn-text)}
+.st-no_position      {background:var(--lm-surface-2);border-left-color:#444;text-decoration:line-through;opacity:.7}
+
+.place-key{display:inline-block;width:.85rem;height:.85rem;border-radius:.2rem;vertical-align:-1px;
+  margin-right:.25rem;border-left:3px solid transparent}
+
+/* THE SPREADSHEET'S TONES OF GREEN: a confirmed child's staffing age band
+   (14 Oct 2026). Only on `confirmed` - every other status is an identity hue the
+   team learned from the workbook legend and must not shift. Two classes, so
+   (0,2,0) beats .st-confirmed alone, and not tied to .place-chip so the legend
+   square (.place-key) takes the same tone as the chip it explains. */
+.st-confirmed.ab-0{background:var(--lm-age-0)}
+.st-confirmed.ab-1{background:var(--lm-age-1)}
+.st-confirmed.ab-2{background:var(--lm-age-2)}
+
+/* ------------------------------------------------------------
+   The cell grid - rooms down, weekdays across. One room x weekday
+   cell is the app's unit of work, so it carries everything about
+   that cell at a glance: how full, how it compares with Kidsoft,
+   and whether there is anything to act on.
+   ------------------------------------------------------------ */
+.grid-table{table-layout:fixed}
+.grid-table th{font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted);
+  border-bottom:1px solid var(--lm-purple-light)}
+/* The name column is the widest thing in the row - "Radiant Rainbows Silver"
+   plus its mark, its age band and, when it is not linked, a warning icon - and
+   the week total at the far end is at most three digits. Both are stated because
+   the table is `table-layout:fixed`, where the header row's widths are the only
+   ones that count and everything left over is split between the five weekdays.
+   Free per week takes the two-line heading the weekday columns already use --
+   as one line "FREE/WEEK" broke mid-word at any width worth having. */
+.grid-table th.grid-room{width:21rem;text-transform:none;letter-spacing:0;font-size:.9rem;color:inherit}
+/* "53/850", not "53". The column carries a fraction now (16 Sep 2026), so it
+   needs the width of one - 5rem clipped it. */
+.grid-table th.grid-free{width:6.5rem}
+/* The figure in front, the total it came out of behind it, which is exactly the
+   treatment the weekday cells above give placed/capacity. Tabular so the slashes
+   line up down the column; the room rows and the totals row differ only in
+   weight, which the row already sets. */
+.grid-free-fig{font-variant-numeric:tabular-nums;white-space:nowrap}
+.grid-free-cap{opacity:.62}
+.grid-room{vertical-align:middle}
+
+/* Rules that run the WHOLE way across, name column included.
+   The white 2px gutters that used to sit on .cell painted over Bootstrap's row
+   rule on the coloured cells while the room-name <th> kept its own, so the line
+   visibly stopped at the first heat block. One rule colour on every cell of the
+   row fixes it, and letting the colour blocks butt up against each other rather
+   than be broken up by white gutters also reads as more colour, not less. */
+.grid-table,.ov-table{--bs-table-border-color:var(--lm-line-2)}
+.grid-table > tbody > tr > * + *,
+.ov-table   > tbody > tr > * + *,
+.grid-table > thead  > tr > * + *,
+.ov-table   > thead  > tr > * + *{border-left:1px solid var(--lm-line-2)}
+
+/* A cell is a HEAT BLOCK: colour = how full, one big number = places going
+   spare. It must be readable across 11 rooms x 5 columns without reading
+   anything, so it carries one number, one caption and at most one dot. */
+/* NOTE THE DOUBLED CLASS on every rule that sets a background or colour below.
+   Bootstrap's `.table>:not(caption)>*>*` is specificity (0,1,1) and sets both
+   `background-color: var(--bs-table-bg)` and `color`, so a single `.cell-full`
+   at (0,1,0) LOSES and every cell paints plain white. `.cell.cell-full` is
+   (0,2,0) and wins. This is why the heat map rendered as a blank table. */
+/* THE CELL IS THE ONE THING ON THESE TWO BOARDS THAT DOES NOT GET SQUEEZED.
+
+   On the CENTRE grid and the GROUP overview alike. The height used to live in
+   .grid-tight, which only the centre grid wears, so the overview drew the same
+   heat blocks at a content-driven 57.5px - below the threshold this whole note
+   is about, on the screen you pick a centre FROM. Same block, same size, both
+   screens.
+
+   Three passes to learn it, and the record is the useful part:
+
+     58px  where it started
+     44px  squeezed to fit eleven rooms on one screen -> "too squatted"
+     52px  most of it given back -> "still need a LOT more height"
+     76px  what it is now, and it is TALLER THAN IT EVER WAS
+
+   A heat block is a BLOCK. Its whole job is to be read as a panel of colour from
+   across a desk, and a panel whose text is jammed against the row rule above and
+   below is not one - the number stops being *in* something. That reading does
+   not improve gradually as you add padding back, which is why 52px was still
+   wrong after 44px was reported: it is a threshold, not a dial, and the height
+   the grid wants is more than the height it happened to ship with.
+
+   SO THE WHOLE-BOARD FIT IS OFF THE TABLE, and that is the right way round.
+   Eleven rooms at 76px cannot share a 947px window with tiles, two banners and a
+   legend whatever else is trimmed - the arithmetic was never close. Seeing eight
+   rooms as proper heat blocks beats seeing eleven as strips: the grid is scanned
+   by COLOUR, and colour needs area. Everything else on the screen stays tight
+   because that is what buys the seventh and eighth rows - measured 8 of 11 fully
+   visible at 1920x1080, 6 at 947 - and the cell is simply not part of the budget
+   any more. Do not spend it here again.
+
+   A SET HEIGHT, not padding alone: it sets the block's SIZE rather than the gap
+   round whatever text happens to be in it, so a "Full" cell and a "10 / 20/30"
+   cell are the same panel - and the overview, which had no height at all, drew
+   cells 57.5px and 58px tall in the same table. .grid-room keeps up so the name
+   is never the thing setting the row height. */
+td.cell{position:relative;text-align:center;vertical-align:middle;
+  padding:.75rem .4rem;height:4.75rem;
+  cursor:pointer;transition:filter .1s}
+.cell:hover{filter:brightness(.94)}
+.cell:active{filter:brightness(.88)}
+/* Tabbing through the grid has to be visible; the outline sits inside the cell
+   so it is not clipped by the neighbouring border. */
+.cell:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-3px}
+
+.cell-big{display:block;font-size:1.35rem;font-weight:700;line-height:1.05;
+  font-variant-numeric:tabular-nums}
+.cell-word{font-size:.95rem;font-weight:600;letter-spacing:.01em}
+.cell-na{font-weight:400;opacity:.5}
+.cell-sub{display:block;font-size:.72rem;opacity:.7;line-height:1.3;
+  font-variant-numeric:tabular-nums}
+
+/* A real HEAT SCALE, not three pastels. The earlier washes were so pale that a
+   full room and a half-empty one looked alike at arm's length, which defeats the
+   point of a board. Five steps now, deepening with how much is going unsold, and
+   every text/fill pair is >= 5.3:1 so the numbers stay readable on the colour.
+   Semantic direction stays conventional: green = nothing to do, red = money. */
+.cell.cell-full   {background:var(--lm-good-mid);color:var(--lm-good-text)}   /* 6.8:1 */
+.cell.cell-low    {background:var(--lm-warn-mid);color:var(--lm-warn-ink)}   /* 6.4:1  - 1-2 places */
+.cell.cell-high   {background:var(--lm-danger-mid);color:var(--lm-danger-text)}   /* 6.4:1  - 3-6 places */
+.cell.cell-vhigh  {background:#ef8f8f;color:#5e1010}   /* 5.8:1  - 7+ places */
+.cell.cell-over   {background:var(--lm-danger);color:#fff}      /* 7.5:1  - over licensed */
+.cell.cell-unknown{background:var(--lm-line);color:var(--lm-ink-3)}   /* 5.3:1  - nothing to measure */
+
+/* A family asked for this exact day AND a place is free - the one state that
+   needs no data entry at all, only a conversation. It gets a ring rather than
+   another colour, so it reads on top of whatever the fill state already says.
+   The ring PULSES, because a static outline on a grid of coloured blocks is the
+   easiest thing on the screen to scan straight past, and this is the one cell
+   worth walking to the phone for. Movement is what the eye finds first, so the
+   only animated thing on the board is also the only one that pays for itself.
+   It is TWO inset shadows, and both halves are doing a job. A crisp 1.5px edge
+   keeps the cell's boundary readable against its neighbours, and a soft green
+   glow breathes inside it. Glow alone went muddy over the amber and red heat
+   fills - a blur with no edge reads as a smudge on the cell rather than a mark
+   somebody put there. Both grow INWARDS, so nothing reflows and no neighbouring
+   cell moves under the pointer mid-click. Slow (2.4s) and shallow on purpose --
+   a fast or fat pulse on a dozen cells at once reads as a fault rather than an
+   invitation. rgba() rather than the token because a shadow needs the alpha;
+   the literal is --lm-good #1a7f4b, as in .dot-grant below. */
+.cell.cell-grantable{
+  box-shadow:inset 0 0 0 1.5px var(--lm-good),inset 0 0 7px 0 rgba(26,127,75,.3);
+  animation:cell-grant-pulse 2.4s ease-in-out infinite}
+@keyframes cell-grant-pulse{
+  0%,100%{box-shadow:inset 0 0 0 1.5px var(--lm-good),
+                     inset 0 0 6px 0 rgba(26,127,75,.22)}
+  50%    {box-shadow:inset 0 0 0 1.5px var(--lm-good),
+                     inset 0 0 14px 3px rgba(26,127,75,.5)}
+}
+/* Anybody who has asked their OS to stop things moving gets the plain ring --
+   the cell is still outlined, so no information is carried by the motion alone. */
+@media (prefers-reduced-motion:reduce){
+  .cell.cell-grantable{animation:none}
+}
+
+/* One dot, top-right, meaning "there is something to do here". Which thing is
+   in the tooltip - the point is that the eye finds the cell, not that the cell
+   explains itself in five colours. */
+.cell-dot{position:absolute;top:.3rem;right:.3rem;width:.5rem;height:.5rem;
+  border-radius:50%;display:block}
+/* The grantable dot BREATHES, in the legend and on the grid alike. Applied to
+   the class rather than to #grid-legend, deliberately: the key and the mark it
+   describes have to look like the same thing, and a legend dot that glows over
+   a grid dot that does not is two marks for one fact - the failure the stat
+   tile taught this codebase six times over. Same 2.4s as the cell ring, so the
+   two halos on a grantable cell breathe together instead of beating against
+   each other. Outward glow here (the dot has room around it), inward on the
+   cell (which does not). */
+.dot-grant  {background:var(--lm-good);box-shadow:0 0 0 2px rgba(26,127,75,.25);
+  animation:dot-grant-pulse 2.4s ease-in-out infinite}
+@keyframes dot-grant-pulse{
+  0%,100%{box-shadow:0 0 2px 1px rgba(26,127,75,.3)}
+  50%    {box-shadow:0 0 8px 4px rgba(26,127,75,.55)}
+}
+@media (prefers-reduced-motion:reduce){
+  .dot-grant{animation:none}
+}
+.dot-req    {background:var(--lm-req)}
+.dot-cand   {background:var(--lm-pink)}
+/* In the legend the dots sit inline, not pinned to a corner. */
+#grid-legend .cell-dot{position:static;display:inline-block;margin-right:.3rem;vertical-align:middle}
+
+/* ------------------------------------------------------------
+   A place COMING FREE, top-LEFT. Supply on the left, demand on the right:
+   the dot above is who is waiting, this is what there will be to sell, and
+   the two are different facts that a cell must be able to state together.
+   It is deliberately not a dot - see the one-dot rule in board.js.
+
+   A WHITE CHIP, NOT AN AMBER ONE, and that is the only way it works. This mark
+   has to be legible on all six heat fills: pale green, pale amber, pale red,
+   #ef8f8f, the dark #a32020 of an over-capacity cell, and grey. An amber fill
+   vanishes into .cell-low (also amber) and goes muddy on the two reds. A near
+   opaque white plate with amber-brown ink reads on every one of them, and it
+   also LOOKS stuck on, which is the right metaphor for a fact about later.
+   --lm-warn-deep on white is 5.08:1.
+
+   position:absolute so it cannot change the cell's height - 16% of cells carry
+   one, and a mark that reflowed its row would make the grid ragged. */
+.cell-cf{position:absolute;top:.25rem;left:.3rem;
+  font-size:.6rem;font-weight:700;line-height:1;letter-spacing:.01em;
+  padding:.13rem .28rem;border-radius:.6rem;white-space:nowrap;
+  background:rgba(255,255,255,.93);color:var(--lm-warn-deep);
+  border:1px solid rgba(165,92,0,.45);font-variant-numeric:tabular-nums}
+/* In the legend it sits inline, same as the dots two rules up. */
+.cell-cf.cf-legend{position:static;display:inline-block;margin-right:.35rem;
+  vertical-align:middle}
+
+/* ------------------------------------------------------------
+   BEING FILLED, bottom-RIGHT (14 Oct 2026): a family part-way through enrolling
+   for this day, not holding a place yet. The third corner, after supply (top
+   left) and somebody waiting (top right) - see the comment in cellHtml().
+
+   BRAND NAVY, NOT --lm-req. That blue already means "a family asked for this
+   day" on the top-right dot, the day strip and the roster, and one hue carrying
+   two facts is what the --lm-req token was named to stop. The WHITE RING is
+   what tells it from the three demand dots at a glance, and it is also what
+   keeps a navy dot legible on the dark red of an over-capacity cell. */
+.cell-prog{position:absolute;bottom:.3rem;right:.3rem;width:.5rem;height:.5rem;
+  border-radius:50%;display:block;background:var(--bs-primary);
+  box-shadow:0 0 0 1.5px rgba(255,255,255,.95)}
+#grid-legend .cell-prog{position:static;display:inline-block;margin-right:.35rem;
+  vertical-align:middle}
+
+/* ------------------------------------------------------------
+   SHOW ME WHERE. A lit-btn in a year notice turns the board into the answer:
+   everything the notice is not talking about drops back, so what is left is the
+   work. Shared by the coming-free month chips and the grantable notice, which
+   is the point - the two notices on this screen used to describe the grid in
+   words ("Little Angels Tue, Wed; ...", "look for the green dot") and now they
+   both just point at it.
+
+   Dimming rather than hiding, because a room's other four days are the context
+   that says whether the freed day is sellable at all. */
+.grid-table.grid-lit .cell:not(.cell-lit){opacity:.35}
+/* The grantable ring is the loudest thing on this grid and it must not go on
+   pulsing from behind a dimmed cell - at a third opacity it reads as a
+   rendering fault rather than as an invitation. The lit cells keep theirs. */
+.grid-table.grid-lit .cell.cell-grantable:not(.cell-lit){animation:none}
+
+/* The ring round a lit cell is a PSEUDO-ELEMENT, and neither of the two obvious
+   properties would do.
+   - `outline` paints in the last step of the stacking context, after every
+     positioned descendant, so it drew straight THROUGH the pinned totals row:
+     four cells scrolled safely underneath it still showed their ring as brown
+     lines across the week's figures.
+   - `box-shadow` would be silently eaten on the cell that matters most. The
+     grantable ring is a box-shadow driven by a keyframe animation, so on a cell
+     that is both grantable and coming free - Tuggerah's Amazing Asteroids
+     Silver Friday, today - the animation replaces the property outright and one
+     of the two rings vanishes. The grantable ring is the one thing on this grid
+     that must never be displaced.
+   An absolutely positioned ::after is an ordinary positioned descendant at
+   z-index auto, so the totals row's z-index:2 covers it properly, and it does
+   not touch box-shadow at all.
+
+   NO SECOND RING ON A CELL THAT ALREADY HAS ONE. A grantable cell carries the
+   green pulsing ring, so an amber one over the top would be two rings saying
+   one thing in two colours. This also settles what "Show" does on the grantable
+   notice: every cell it lights is grantable, none of them takes the amber ring,
+   and all the button does is drop the rest of the board back so the green pulse
+   is unmissable. Which is exactly the job. */
+.cell.cell-lit:not(.cell-grantable)::after{content:"";position:absolute;inset:0;
+  pointer-events:none;border:2px solid var(--lm-warn-deep)}
+/* NO INVERTED CORNER TAG on a lit cell, though it looked good on the month
+   chips. Once the grantable notice shared this mechanism the rule fired there
+   too, so pressing the GREEN Show turned an amber "+1 Aug" tag solid on the one
+   cell it lit - the loudest thing on screen was then a fact that button is not
+   about. The ring and the dimming already say which cells are lit. */
+
+/* The button itself. Not .btn: Bootstrap's button variables would have to be
+   overridden one at a time to get here, and this is a pill with two states.
+   ONE ink colour drives the whole thing, so a notice sets --lit-ink and gets a
+   button that matches the alert it sits in rather than a second palette. */
+.lit-btn{--lit-ink:var(--lm-warn-deep);
+  font-size:.78rem;line-height:1.35;padding:.05rem .55rem;border-radius:2rem;
+  background:rgba(255,255,255,.7);color:var(--lit-ink);
+  border:1px solid currentColor;cursor:pointer;
+  font-variant-numeric:tabular-nums;transition:background-color .1s,color .1s}
+.lit-btn:hover{background:#fff}
+.lit-btn:focus-visible{outline:2px solid var(--lm-purple);outline-offset:1px}
+.lit-btn[aria-pressed=true]{background:var(--lit-ink);color:#fff;border-color:var(--lit-ink)}
+/* --lm-good-text, not --lm-good: this is TEXT on a pale wash at rest and the
+   fill behind white when pressed, and one token has to pass both ways. 9.4:1. */
+.alert-success .lit-btn{--lit-ink:var(--lm-good-text)}
+
+/* THE "COMING FREE" BANNER'S NAMED LIST (10 Nov 2026) - see departureList() in
+   board.js. Not .lit-btn: that class is the grid-lighting gesture and its click
+   handler would fire. --lm-warn-deep is the amber TEXT token, 4.6:1 on the wash. */
+.cf-who-btn{font-size:.78rem;font-weight:600;color:var(--lm-warn-deep);
+  text-decoration:none;padding:0 .2rem}
+.cf-who-btn:hover,.cf-who-btn:focus{color:var(--lm-warn-deep);text-decoration:underline}
+.cf-who{margin-top:.5rem;padding-top:.4rem;border-top:1px solid var(--lm-warn-mid)}
+.cf-table th.cf-group{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  color:var(--lm-warn-deep);padding:.45rem 0 .1rem}
+.cf-table tbody:first-child th.cf-group{padding-top:.1rem}
+.cf-table{font-size:.85rem;margin-bottom:.2rem}
+.cf-table td{padding:.15rem 1rem .15rem 0;vertical-align:middle;white-space:nowrap}
+.cf-table .cf-open{font-size:inherit;color:var(--lm-ink);text-decoration:none}
+.cf-table .cf-open:hover{text-decoration:underline}
+
+.grid-totals th,.grid-totals td{border-top:2px solid var(--lm-purple-light);background:var(--lm-surface)}
+.legend-swatch{display:inline-block;width:.85rem;height:.85rem;border-radius:.2rem;
+  vertical-align:-1px;margin-right:.25rem;border:1px solid rgba(0,0,0,.08)}
+.legend-swatch.sw-full {background:var(--lm-good-mid)}
+.legend-swatch.sw-low  {background:var(--lm-warn-mid)}
+.legend-swatch.sw-high {background:var(--lm-danger-mid)}
+.legend-swatch.sw-vhigh{background:#ef8f8f}
+.legend-swatch.sw-over {background:var(--lm-danger)}
+.legend-swatch.sw-na   {background:var(--lm-line)}
+#grid-legend{gap:.15rem 1rem!important}
+#cell-body .place-chip{display:inline-block;margin:0 .2rem .2rem 0}
+
+/* The room name opens the whole room, so it has to look like the button it is.
+   Doubled up as `.grid-table th.grid-room` because Bootstrap's
+   `.table>:not(caption)>*>*` sets background-color at (0,1,1) - the same trap
+   the heat classes above document. */
+.grid-table th.grid-room{cursor:pointer;transition:background-color .1s}
+.grid-table th.grid-room:hover{background-color:var(--lm-purple-light)}
+.grid-table th.grid-room:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-3px}
+
+/* ------------------------------------------------------------
+   The room roster - one room, every child, all five weekdays.
+   The workbook's per-room sheet: children down, days across. It shares the
+   panel and the status chips with the cell view, because it is another way
+   into the same grid rather than a screen of its own.
+   ------------------------------------------------------------ */
+.roster{font-size:.88rem}
+.roster th{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted)}
+.roster td,.roster th{padding:.25rem .3rem}
+.roster .rs-name{width:auto}
+.roster .rs-day{width:2.6rem;text-align:center}
+.roster th.rs-open{cursor:pointer}
+.roster th.rs-open:hover{color:var(--lm-purple);text-decoration:underline}
+.roster th.rs-open:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
+/* Attends / does not. The dot is deliberately faint: the eye should read the
+   PATTERN of ticks down the week, and a row of dark dashes competes with it. */
+.roster td.rs-on{color:var(--lm-purple)}
+.roster td.rs-off{color:#d3d1e0}
+/* On the board, but holding no place (waitlist / position not available), so
+   the ticks above do not add up to the totals below. */
+.roster tr.rs-noplace{opacity:.55}
+.roster .rs-note{font-size:.68rem;line-height:1.2}
+
+/* THE EMPTY BOXES ARE A CONTROL. Clicking a day this child does not attend
+   records that a family has asked for it - the internal waitlist, which is the
+   one piece of demand Kidsoft has no field for. The element must be named
+   (td.rs-wishable, not .rs-wishable) to beat Bootstrap's .table>:not(caption)>*>*
+   at (0,1,1); the same trap the heat classes document. */
+.roster td.rs-wishable{cursor:pointer}
+.roster td.rs-wishable:hover{background:var(--lm-surface-2);color:var(--lm-req)}
+.roster td.rs-wishable:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
+/* Waiting for this day. The SAME hue as the grid's "asked for this day" dot, so
+   one fact is one colour whichever screen it is read on. */
+.roster td.rs-wish{color:var(--lm-req)}
+/* OFFERED A PLACE HERE AND NOT ANSWERED YET. Under the roll, above the totals.
+   Deliberately NOT faded the way .rs-noplace is - those rows are on the board
+   holding nothing, these are live families somebody has to ring. A tint groups
+   them instead, so the eye reads them as a different kind of row rather than a
+   weaker one.
+
+   THE MARK IS A BOOKMARK IN A NEUTRAL INK, not a purple tick. A tick on this
+   sheet means the child attends that day and none of these do yet - the offer
+   can still lapse. Same reasoning as the neutral day strip the cell panel gives
+   the same families; see window.dayStrip(). Named td.rs-held, not .rs-held, to
+   beat Bootstrap's .table>:not(caption)>*>* at (0,1,1) - the trap the wishable
+   cells above already document. */
+.roster tr.rs-offered td{background:var(--lm-surface-2)}
+.roster td.rs-held{color:var(--lm-ink-2)}
+/* ITS OWN LINE, not a trailing span. Inline, one name in four wrapped and only
+   one - "Daniel Harrison smith" - so three rows were one line tall and the
+   fourth was two, which is the ragged block a column width produces when it
+   nearly fits. A block is uniform whatever the name. */
+.roster .rs-sub{display:block;font-size:.72rem;color:var(--lm-muted);line-height:1.3}
+.rs-held-key{color:var(--lm-ink-2)!important}
+
+/* The key glyph in the hint line under the table. !important because it sits
+   inside a .text-muted paragraph and Bootstrap's colour utilities carry
+   !important, so nothing short of it wins - the same reason .text-primary above
+   does. Without it the key renders grey and stops matching the blue hourglasses
+   it is there to explain, which is the whole job of a key. */
+.rs-wish-key{color:var(--lm-req)!important}
+
+/* HELD FOR THIS CHILD, AND NOT BOOKED. The third thing an empty box on the
+   roster can say, and it had to be told apart from the other two at a glance:
+   purple tick = attends, blue hourglass = asked for and has not got, amber
+   padlock = kept for them and out of the free figure.
+
+   AMBER, and it is the only mark on this sheet that is not one of the app's two
+   working hues. That is the point - a place deliberately out of use is not a
+   normal state of a weekday, and reading it as either "attends" or "wants" is
+   exactly the wrong conclusion. --lm-warn-deep is 5.08:1 on white, well over the
+   3:1 a glyph needs; --lm-warn-text at 2.0:1 would not have been legible here.
+
+   Named td.rs-hold, not .rs-hold, to beat Bootstrap's .table>:not(caption)>*>*
+   at (0,1,1) - the same specificity trap the wishable and held cells above
+   document, and the one that once rendered the whole heat map as a plain white
+   table. */
+.roster td.rs-hold{color:var(--lm-warn-deep)}
+.roster td.rs-hold:hover{color:var(--lm-warn-deep)}
+.rs-hold-key{color:var(--lm-warn-deep)!important}
+
+/* A CHILD THE BOARD CANNOT SHOW, whose place is being held anyway - removed from
+   care pending an improvement in behaviour, so Kidsoft holds no booking to
+   derive a roll row from. Tinted like the offered rows and for the same reason:
+   these are live children somebody is working with, so fading them the way
+   .rs-noplace fades a row holding nothing would say the opposite.
+
+   The name is a plain span, not a .place-chip, because there is no placement row
+   behind it to open - see the comment at the call site. It still needs to read
+   as a name rather than as stray text, so it takes the chip's weight and ink
+   without the chip's affordance. */
+.roster tr.rs-heldout td{background:var(--lm-surface-2)}
+.rs-heldout-name{font-weight:600;color:var(--lm-ink)}
+
+/* PART-WAY THROUGH ENROLLING FOR DAYS HERE (14 Oct 2026). Tinted with the other
+   families who are not on the roll, for the same reason - live families
+   somebody is ringing, not rows holding nothing. The mark is the stage icon the
+   Waitlist already hangs on an In progress family, in MUTED ink: nothing is held,
+   and it must not out-shout the bookmark (held by an offer) or the padlock. */
+.roster tr.rs-progress td{background:var(--lm-surface-2)}
+.roster td.rs-prog{color:var(--lm-muted)}
+.rs-prog-key{color:var(--lm-muted)!important}
+
+/* The green tones counted per day, at the TOP of the roster under the day
+   headings. A summary block like the Placed row at the foot, so it takes the
+   totals' surface; the rule sits under the LAST band row only, so the block
+   reads as one piece rather than as three more children. */
+.roster tr.rs-band th,.roster tr.rs-band td{background:var(--lm-surface)}
+.roster tr.rs-band-last th,.roster tr.rs-band-last td{border-bottom:2px solid var(--lm-line-2)}
+
+/* The same count for one day, over the cell panel's roll. */
+.cp-bands{display:flex;flex-wrap:wrap;gap:.2rem 1rem;font-size:.78rem;color:var(--lm-ink-2);
+  margin:0 0 .35rem}
+
+/* What the parent actually said. Set apart from the machine-generated lines
+   around it - a quote from a phone call is the one thing on that card a person
+   wrote, and it is the reason the feature exists. */
+.wish-note{border-left:2px solid var(--lm-req);padding-left:.5rem;color:var(--lm-ink-2)}
+/* Who wrote the note, attached to the NOTE. On a family who both booked in the
+   portal and rang the centre, the two are different people on different dates. */
+.wish-note .wish-by{font-size:.75rem;color:var(--lm-muted)}
+
+/* ------------------------------------------------------------
+   THE CELL PANEL - one room, one weekday.
+   The app's most-used surface, and until 14 Aug 2026 the least designed: four
+   blocks, four different shapes, and the one question all of them are about
+   (which days does this child have, which do they want) written out in prose
+   three different ways on one screen.
+   One vocabulary now, in this order: FIGURES as tiles, the year as one grey
+   line, then cards that all have the same head / strip / contact / action.
+   ------------------------------------------------------------ */
+
+/* The figures the grid cell was already showing, restated as figures rather
+   than as a comma-separated sentence in the subtitle. */
+.cp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-bottom:.5rem}
+.cp-stat{background:var(--lm-surface);border:1px solid var(--lm-line);border-radius:.4rem;
+  padding:.35rem .55rem;min-width:0}
+.cp-n{font-size:1.4rem;line-height:1.15;font-weight:600;color:var(--lm-ink)}
+.cp-n .cp-of{font-size:.9rem;font-weight:400;color:var(--lm-muted)}
+.cp-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Same language as the grid's heat: full is the good state, a place going
+   spare is the one to do something about. */
+.cp-stat.cp-good{background:var(--lm-good-wash);border-color:var(--lm-good-mid)}
+.cp-stat.cp-good .cp-n{color:var(--lm-good-text)}
+.cp-stat.cp-act{background:var(--lm-danger-wash);border-color:var(--lm-danger-mid)}
+.cp-stat.cp-act .cp-n{color:var(--lm-danger-text)}
+/* The action row is .cp-actions, NOT .cp-act. It was .cp-act for one build and
+   its display:flex leaked onto this tile through the single-class selector --
+   the free figure and the word "free" ended up side by side while the two tiles
+   either side stayed stacked. Two states of one panel must not share a stem. */
+
+/* Supply facts. Each is a number and a date, which is a badge's whole job --
+   they were four separate sentences and one tiny orange strip before. */
+.cp-badges{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center}
+
+/* WAITING FOR RE-ENROLMENT. One row per child rather than a wrapped strip of
+   chips: the name is the subject and has to read first, and the room they are
+   in NOW is the fact that stops the row looking like a mistake on a board for
+   next year. These are not controls, so nothing here is a button. */
+.cp-held{display:flex;flex-direction:column;gap:.3rem}
+.cp-held-row{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;
+  padding:.35rem .5rem;border:1px solid var(--lm-line);border-radius:.4rem;
+  background:var(--lm-surface);font-size:.82rem}
+.cp-held-name{font-weight:600;color:var(--lm-ink)}
+.cp-held-from{color:var(--lm-muted);font-size:.78rem}
+.cp-held-note{color:var(--lm-muted);font-size:.78rem}
+.cp-qual{margin-bottom:.5rem}
+
+/* THE YEAR, IN ONE GREY LINE. This was an amber alert box that fired on 95 of
+   95 cells measured - an alert that is always on is a border, not an alert,
+   and its shape claimed something was wrong on cells where nothing was. */
+.cp-year{font-size:.78rem;color:var(--lm-muted);margin:0 0 .9rem;line-height:1.35}
+
+/* Section headings, with the count set apart from the words rather than
+   wrapped in brackets after them. */
+.cp-h{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--lm-ink-3);margin:1.1rem 0 .4rem;display:flex;align-items:center;gap:.4rem}
+.cp-h span{background:var(--lm-surface-2);color:var(--lm-ink-2);border-radius:1rem;
+  padding:.05rem .4rem;font-size:.7rem;letter-spacing:0}
+
+/* MON TO FRI AS FIVE BOXES - see window.dayStrip() in app.js for the states and
+   for what this replaced. This is the ONLY definition; the Waitlist's .wl-day,
+   Search's .sr-day and the Dashboard's .dstrip-d were three more, in three
+   different colour languages, and they are gone.
+
+   THE EDGE IS AN INSET box-shadow, NOT A BORDER AND NOT AN OUTLINE. A border
+   grows the box, and five of these set the floor of the Waitlist's "Days wanted"
+   column, which is spent to the pixel at 1280 (see the header comment in
+   waitlist.php) - 1.5px each side of five boxes is 15px the column has not got.
+   An outline does not grow it either, but outline is what :focus-visible uses
+   and the drift page's day compare already spent it. */
+/* THE GEOMETRY IS THE OLD BOARD'S AND THE OLD QUEUE'S TO THE PIXEL, on purpose:
+   1.3rem boxes .1rem apart is 6.9rem, which is what .cp-dcol's 8.6rem was
+   measured against, and five wide ones is 10.9rem, which is what the "Days
+   wanted" columns' 12rem and 13rem were measured against (see the header
+   comments in waitlist.php). This change is meant to move colour and nothing
+   else - a 1.4rem box, which two of the four copies used, overflows both. */
+.dstrip{display:inline-flex;gap:.1rem;flex:0 0 auto;vertical-align:middle}
+.dbox{width:1.3rem;height:1.3rem;border-radius:.25rem;font-size:.7rem;font-weight:600;
+  line-height:1;display:inline-flex;align-items:center;justify-content:center;
+  background:var(--lm-surface-2);color:var(--lm-muted)}
+/* The wide variant: a table column, where there is room to say "Mon" rather than
+   "M". Same box, same colours - only the label and the width change. */
+.dstrip-wide .dbox{width:auto;min-width:2.1rem;padding:0 .2rem}
+
+/* THEY ATTEND THIS DAY. --lm-good-mid, the same green a full cell takes on the
+   placement grid, with a solid --lm-good edge. It was --lm-good-wash with no
+   edge, which is 1.1:1 against the page: the team reported it as unreadable on
+   some monitors, and on a row where one day was a wash and another was a 1px
+   #bfe5cd ring the two states could not be told apart at all. Measured: the ink
+   is 6.8:1 on the fill, the edge 5.0:1 on the page. */
+.dbox.db-has{background:var(--lm-good-mid);color:var(--lm-good-text);
+  box-shadow:inset 0 0 0 1.5px var(--lm-good)}
+/* ASKED FOR, AND THEY HAVE NOT GOT IT - the demand, and the loudest state here
+   because it is the one somebody has to do something about. --lm-req is the
+   same blue as the grid's "asked for this day" dot, the roster's hourglass and
+   the wish note, so one fact is one colour on every screen. 4.9:1 under white. */
+.dbox.db-want{background:var(--lm-req);color:#fff}
+/* THEY ATTEND, AND IT IS NOT ON THIS APPLICATION. Deliberately NOT the same as
+   .db-has: green fill plus blue has to stay exactly the set the application
+   asked for, or the strip contradicts the modal's Days requested - which is what
+   it did on Aleigha Grant's Friday. So this keeps the off-day background and
+   says "attending" with the edge and the green ink alone. */
+.dbox.db-extra{color:var(--lm-good-text);box-shadow:inset 0 0 0 1.5px var(--lm-good)}
+/* NAMED, AND NOTHING MORE. The same treatment as .db-has - a fill a step down
+   from the page under a solid edge - with the hue taken out, for a strip whose
+   only question is WHICH WEEKDAY. The Dashboard's "Places coming free" is the
+   case: those days are days the child holds, so .db-has was literally true and
+   read as "a place is held" on a card about a place being given up (Broc, 4 Sep
+   2026). Neutral is a real state here, not an absent one - it has to be told
+   apart from the grey of a day that is NOT in the set, which is what the edge
+   and the darker ink do. Measured: the ink is 8.1:1 on the fill, and the fill
+   1.45:1 against an off box beside it. */
+.dbox.db-plain{background:var(--lm-line-2);color:var(--lm-ink);
+  box-shadow:inset 0 0 0 1.5px var(--lm-ink-3)}
+/* HELD FOR THIS CHILD AND NOT BOOKED. Amber, the same hue the roster's padlock
+   takes, so a place deliberately out of use reads as one fact on both screens.
+   It is the only state in this strip that is neither of the app's two working
+   hues, and that is the point: a held day is not "attends" and not "wants", and
+   reading it as either is exactly the wrong conclusion.
+   --lm-warn-ink is 6.4:1 on --lm-warn-mid, measured for this pair. */
+.dbox.db-held{background:var(--lm-warn-mid);color:var(--lm-warn-ink);
+  box-shadow:inset 0 0 0 1.5px var(--lm-warn-deep)}
+/* COMING FREE - a day the child holds and is giving up (10 Nov 2026). The
+   board's "+1 free" badge colour exactly (.text-bg-warning: --lm-warn under
+   #332200 ink, 7.9:1), Broc's choice, so amber means "coming free" on the
+   banner, the badge and the boxes alike. NO EDGE, and that is what tells it
+   from .db-held beside it: held is the pale --lm-warn-mid under a dark amber
+   edge, this is the strong fill bare. */
+.dbox.db-ending{background:var(--lm-warn);color:#332200}
+/* THE DAY THIS PANEL IS ABOUT. Purple does this one job in the strip and no
+   other, which is why "asked for" moved off it. Last, so it wins the edge on a
+   box that also carries a state - the fill still says what that state is.
+
+   TWO RINGS, AND THE WHITE ONE IS NOT DECORATION. A single purple inset ring
+   was what this used to be, back when the box under it was a pale wash. Against
+   the solid --lm-req fill the "asked for" days now carry, #2e3192 on #3764b6 is
+   two blues a pixel and a half apart and the ring all but vanished - measured on
+   the cell panel's candidate cards, where every day is blue and exactly one is
+   ringed. The white ring sets the purple off whatever it lands on. */
+.dbox.db-day{box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 3px var(--lm-purple)}
+
+/* The roll: a LIST, not a paragraph of names. Fifteen chips flowing three to a
+   line had no column to scan and said one thing (a name) where the data says
+   four. */
+.cp-roll{font-size:.88rem;margin-bottom:.25rem}
+.cp-roll th{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted);
+  font-weight:600}
+.cp-roll td,.cp-roll th{padding:.2rem .3rem;vertical-align:middle}
+.cp-roll td:first-child,.cp-roll th:first-child{padding-left:0}
+.cp-roll .cp-dcol{width:8.6rem;text-align:right;white-space:nowrap}
+/* The total rides WITH the strip rather than in a column of its own: a bare
+   number column needs a heading, and every heading that could go over it just
+   says "days" a second time. */
+.cp-dn{display:inline-block;min-width:1rem;margin-left:.4rem;color:var(--lm-muted);font-size:.8rem}
+/* A child's own start or finish date, on the roll beside their name. Only the
+   rows that differ from the rest of the cell carry one - see heldWhen(). */
+.cp-when{color:var(--lm-muted);font-size:.76rem;white-space:nowrap}
+/* WHAT THE DATE IS - "leaving care", "giving up this day", "moving to ..." - in
+   ink, so the fact reads first and the date stays muted (10 Nov 2026). */
+.cp-when .cp-end{color:var(--lm-ink);font-weight:600}
+/* Who is behind the panel's "+N free" badge, one line each, under it. */
+.cp-leavers{list-style:none;padding:0;margin:-.1rem 0 .6rem;font-size:.85rem}
+.cp-leavers li{margin-bottom:.1rem}
+.cp-roll tbody tr:hover td{background:var(--lm-surface)}
+.cp-roll .place-chip:focus-visible{outline:2px solid var(--lm-purple);outline-offset:1px}
+
+/* One card shape for a family, whichever block they are in. */
+.cp-card{border:1px solid var(--lm-line);border-radius:.45rem;padding:.5rem .6rem;
+  margin-bottom:.45rem;background:#fff}
+.cp-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem;margin-bottom:.3rem}
+.cp-name{font-weight:600;color:var(--lm-ink)}
+/* THE CANDIDATE'S NAME OPENS THE FAMILY MODAL - the same dialog the Waitlist
+   queue opens, see _incl/waitlist-modal.php. A <button>, because it opens a
+   dialog and navigates nowhere, so the button chrome comes off and the link
+   colour goes back on. THE ELEMENT IS NAMED IN THE SELECTOR on purpose: .cp-name
+   is also a plain span wherever a name opens nothing - a provisional child, who
+   has no Kidsoft ChildID. Every other name on the "Asked for this day" cards and
+   the held rows is a button.ch-link into the child's own dialog (6 Nov 2026). Underline on hover only,
+   matching a.wl-ov-name and the queue's own .wl-open. */
+button.cp-name{padding:0;border:0;background:none;font:inherit;font-weight:600;
+  text-align:left;text-decoration:none;color:var(--lm-purple)}
+button.cp-name:hover{color:var(--lm-pink);text-decoration:underline}
+.cp-sub{font-size:.76rem;color:var(--lm-muted)}
+.cp-head .cp-badges{margin-left:auto}
+.cp-strip{display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem}
+.cp-strip-txt{font-size:.78rem;color:var(--lm-ink-2);min-width:0}
+.cp-meta{font-size:.75rem;color:var(--lm-muted);margin-top:.15rem}
+.cp-why{margin-top:.3rem}
+.cp-why .badge{font-size:.7rem;white-space:normal;text-align:left}
+.cp-contact{display:flex;flex-wrap:wrap;align-items:center;gap:.15rem .6rem;margin-top:.35rem;
+  font-size:.82rem}
+.cp-gn{color:var(--lm-muted)}
+/* The phone number is what this panel exists to prompt, so it is the one link
+   on the card that looks like a control. */
+.cp-tel{display:inline-flex;align-items:center;gap:.3rem;font-weight:600;text-decoration:none;
+  background:var(--lm-purple-light);color:var(--lm-purple);border-radius:1rem;padding:.1rem .55rem}
+.cp-tel:hover{background:var(--lm-purple);color:#fff}
+.cp-mail{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;color:var(--lm-muted)}
+/* ONE ACTION AT A TIME. Offer and "Add to In progress" used to sit side by side
+   as though they were alternatives; making an offer creates the work item
+   itself, so one contained the other. See actionRow(). */
+.cp-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin-top:.5rem}
+
+/* A near miss: the room cannot take this child, and the reason is the content. */
+.cp-blocked{opacity:.72;background:var(--lm-surface)}
+.cp-blocked-why{font-size:.78rem;color:var(--lm-danger-text);margin-top:.4rem}
+
+/* A family who has ASKED for this exact day. They are the demand policy says
+   comes first, and every other card here is the same box, so the lift is what
+   separates them at a glance. The literal rgba is --lm-good #1a7f4b: CSS cannot
+   rgba() a custom property, the same reason .cell-grantable and .dot-grant
+   spell it out. */
+.cp-req{box-shadow:0 1px 6px 0 rgba(26,127,75,.35);border-color:var(--lm-good-mid)}
+
+/* Context, and a count on purpose - see block 4 in renderCell(). It was three
+   lines of prose explaining itself to a team who know their own rooms. */
+.cp-also{font-size:.78rem;color:var(--lm-muted);margin:1rem 0 0;padding-top:.6rem;
+  border-top:1px solid var(--lm-line)}
+
+/* Whole-organisation overview: one row per centre, one heat block per weekday.
+   It shares .cell / .cell-big / .cell-sub with the room grid on purpose - the
+   screen you pick a centre FROM and the screen you land on must not describe
+   fullness two different ways. */
+.ov-table th{font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted);
+  border-bottom:1px solid var(--lm-purple-light);white-space:nowrap}
+/* THE WEEKDAY BLOCKS ARE THE SAME WIDTH ON BOTH BOARDS, and this is the sum
+   that makes it true rather than a coincidence. Both tables are
+   `table-layout:fixed` and both end in a 6.5rem Free column, so the five
+   weekdays split whatever the LABEL columns leave. The centre grid leaves one
+   column of 21rem; the overview has two (name + Filled) and they are sized to
+   add up to the same 21rem. Change one and change the other, or the screen you
+   pick a centre from stops matching the screen you land on.
+   Filled holds "94.1%" (43px), so 6rem is generous for it - it had been taking
+   a whole weekday column's share purely by having no width at all. */
+.ov-table th.ov-name{width:15rem;text-transform:none;letter-spacing:0;font-size:.9rem;color:inherit}
+.ov-table th.ov-filled{width:6rem}
+.ov-name{vertical-align:middle}
+.ov-centre-row{cursor:pointer}
+/* Only the label column reacts to hover - the heat blocks carry their own
+   meaning and washing them purple would fight the colour that IS the data. */
+.ov-centre-row:hover .ov-name{background:var(--lm-purple-light)}
+.ov-centre-link{text-decoration:none;font-weight:600}
+.ov-pct{font-weight:600;font-variant-numeric:tabular-nums}
+/* IT WRAPS. `white-space:nowrap` was here and the link was ALREADY clipped
+   mid-word at 1280 ("Set 2028 capaci") in the wider column it used to have, so
+   the nowrap was not protecting anything - it was hiding the overflow. Two
+   short lines sit inside the 76px row with room to spare. */
+.ov-cap-link{line-height:1.25}
+
+/* ============================================================
+   Drift - board vs Kidsoft
+   ============================================================ */
+.drift-row{padding:.75rem 1rem}
+.drift-cmp{font-size:.85rem;margin-top:.25rem}
+.drift-cmp > div{display:flex;align-items:center;gap:.35rem;line-height:1.9}
+/* Fixed-width source label so Board/Kidsoft rows line up and the difference
+   between the two reads down the column. */
+.drift-src{display:inline-block;min-width:4.5rem;font-size:.7rem;text-transform:uppercase;
+  letter-spacing:.03em;color:var(--lm-faint)}
+/* A day present in one system and not the other. */
+.dbox.diff{outline:2px solid var(--lm-pink);outline-offset:-2px}
+.drift-suggest{font-size:.82rem;background:var(--lm-purple-light);color:var(--lm-purple);
+  padding:.35rem .6rem;border-radius:.3rem;display:inline-block}
+
+/* ============================================================
+   Annual roll-over review
+   ============================================================ */
+.ro-row{display:grid;grid-template-columns:minmax(14rem,2fr) minmax(9rem,1fr) 11rem minmax(12rem,1.5fr);
+  gap:.75rem;align-items:center;padding:.3rem .25rem;border-top:1px solid rgba(0,0,0,.05)}
+.ro-row:first-child{border-top:0}
+.ro-head{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-faint);padding-bottom:.35rem}
+.ro-row:not(.ro-head):hover{background:var(--lm-surface)}
+@media (max-width:900px){
+  .ro-row{grid-template-columns:1fr;gap:.2rem}
+  .ro-head{display:none}
+}
+
+/* ============================================================
+   Fill vacancies - free places matched to the queue
+   ============================================================ */
+.fill-day{padding:.4rem 0;border-top:1px solid rgba(0,0,0,.06)}
+.fill-day:first-child{border-top:0}
+.fill-day-head{font-size:.85rem;margin-bottom:.25rem}
+.fill-cand{display:flex;align-items:center;flex-wrap:wrap;gap:.15rem;
+  padding:.25rem .5rem;border-radius:.3rem;font-size:.87rem}
+.fill-cand:hover{background:var(--lm-surface)}
+.fill-cand.blocked{opacity:.65}
+/* Queue position: the number staff argue about, so give it weight. */
+.fill-q{display:inline-block;min-width:2.4rem;color:var(--lm-faint);font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   Waitlist
+   ============================================================ */
+/* The queue's day strip is window.dayStrip({wide:true}) - see the DAY STRIP
+   block above. .wl-day and its four states used to be written out again here in
+   their own colours, which is what made "Days wanted" look like a different
+   component from the identical strip on the cell panel. */
+/* THE SAME FOUR STATES AS THE QUEUE'S DAY STRIP, on the family modal's day
+   toggles. One rule does both halves, because Bootstrap's button reads its own
+   custom properties: unchecked takes --bs-btn-color / --bs-btn-border-color and
+   comes out as the green RING, checked takes --bs-btn-active-* and comes out as
+   the green FILL. Overriding the properties rather than the declarations is also
+   what keeps the disabled state right - a Kidsoft-owned row's toggles are
+   disabled, and Bootstrap dims them with opacity rather than another colour.
+   The hover pair has to be set too or a green day flips to Bootstrap's purple
+   under the pointer. */
+/* READ-ONLY, NOT DISABLED-LOOKING. The requested days on a Kidsoft-owned row are
+   the one thing in this dialog everybody comes to read, and Bootstrap dims a
+   disabled .btn-check label to 65% - so the days a family asked for were the
+   faintest thing on the screen. They stay `disabled` on the INPUT, which is what
+   keeps them out of the POST (api/waitlist's save re-reads the stored value), and
+   only the dimming goes. Pointer events come back with it so the green days' own
+   titles are reachable on hover; clicking a label whose control is disabled does
+   not toggle it, so this cannot make them editable. The lock banner at the top of
+   the modal is what says the row is Kidsoft's. */
+#wl-form [name="days[]"]:disabled + .btn{opacity:1;pointer-events:auto;cursor:default}
+/* ASKED FOR. .btn-outline-primary is Bootstrap's purple, which is now the strip's
+   "the day you are looking at" and not its "asked for" - so the toggles take
+   --lm-req, the same blue the queue's .db-want boxes carry two feet away. */
+.wl-dbtn{--bs-btn-color:var(--lm-req);--bs-btn-border-color:var(--lm-req);
+  --bs-btn-hover-bg:var(--lm-req);--bs-btn-hover-border-color:var(--lm-req);
+  --bs-btn-active-bg:var(--lm-req);--bs-btn-active-border-color:var(--lm-req)}
+/* ATTENDS. DOUBLED (0,2,0) so it beats .wl-dbtn above without depending on
+   source order - the trap the heat classes and .mk-bar.wl-bar-shared document.
+   The green matches .db-has / .db-extra: --lm-good on the edge, --lm-good-mid as
+   the fill, where it used to be the near-invisible -wash / -mid pair. */
+.wl-att.wl-att{--bs-btn-color:var(--lm-good-text);--bs-btn-border-color:var(--lm-good);
+  --bs-btn-hover-bg:var(--lm-good-mid);--bs-btn-hover-color:var(--lm-good-text);
+  --bs-btn-hover-border-color:var(--lm-good);
+  --bs-btn-active-bg:var(--lm-good-mid);--bs-btn-active-color:var(--lm-good-text);
+  --bs-btn-active-border-color:var(--lm-good)}
+
+/* THE CHILD'S NAME OPENS THE FAMILY MODAL. A <button>, because it opens a dialog
+   and navigates nowhere - but it has to READ as the link it behaves like, and
+   .btn-link does not get there on its own: it takes --bs-btn-font-size (.875rem
+   under .btn-sm, so the name would be smaller than the age line under it) and
+   Bootstrap's --bs-link-color, which is the navy #2e3192, not the brand purple
+   every real <a> on this page uses. Underline on hover only, matching a.wl-ov-name
+   on the same screen - 115 permanently underlined names is a striped table, and
+   purple against the black of every other cell is already the affordance. */
+.wl-open{--bs-btn-color:var(--lm-purple);--bs-btn-hover-color:var(--lm-pink);
+  --bs-btn-active-color:var(--lm-pink);
+  font-size:inherit;line-height:inherit;vertical-align:baseline;text-decoration:none}
+.wl-open:hover{text-decoration:underline}
+
+/* The guardian email, truncated. ONE CAP CANNOT SERVE BOTH TABLES: guardianCell()
+   is shared, the centre queue gives Guardian 9rem and the group register 12rem,
+   and a text-truncate box is white-space:nowrap, so its cap becomes the column's
+   own floor. A single 14rem was what made the centre table's Guardian column
+   240px and helped push Actions off the right-hand edge. */
+.wl-email{max-width:8rem}
+#wl-group-table .wl-email{max-width:11rem}
+
+/* The age range boxes. Spinners removed: each one takes ~16px of a box that is
+   only ~60px wide once "Age" and "mo" have had theirs, so they cost a quarter
+   of the field to step a value nobody steps - an age is typed, and stepping
+   from 0 to 36 is 36 clicks. Placeholders stay legible at this width, which is
+   what says which box is which. */
+#age-filter input[type=number]::-webkit-outer-spin-button,
+#age-filter input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+/* [type=number] ON BOTH, and it has to be: the date boxes share this container,
+   and `appearance:textfield` on a type=date is one browser away from taking its
+   calendar button with it. */
+#age-filter input[type=number]{-moz-appearance:textfield;appearance:textfield}
+
+/* A crossed date range is marked by the RED BORDER ALONE. Bootstrap's .is-invalid
+   also paints a warning glyph in the right-hand end of the field, which is the
+   exact 20px square the browser draws its own calendar button in - the two
+   overlap into a single unreadable mark (measured at 3x: a red exclamation
+   circle stamped through the calendar). The border says the same thing and the
+   way to fix it stays clickable. The Dashboard's "View more..." dialog has the
+   same pair of boxes (6 Nov 2026). */
+#age-filter .dob-box.is-invalid,
+#wk-modal input[type=date].is-invalid{background-image:none;padding-right:.5rem}
+
+/* THE "VIEW MORE..." DIALOG'S DATE PAIR (Dashboard, 6 Nov 2026). On a phone it
+   takes a line of its own under the title, and the boxes share it - at a fixed
+   width the pair wrapped after "To" and pushed the close button onto a third
+   line. From md it sits beside the title at the width the Waitlist's boxes use. */
+#wk-modal .wk-dates{width:100%}
+#wk-modal .wk-dates .form-control{min-width:0}
+@media (min-width:768px){
+  #wk-modal .wk-dates{width:auto}
+  #wk-modal .wk-dates .form-control{flex:0 0 9.5rem;width:9.5rem}
+}
+
+/* THE ACTIONS COLUMN IS PINNED TO THE RIGHT EDGE OF THE SCROLLER.
+   The declared widths were measured down from 89.5rem to fit 1280px (see the
+   header comment in waitlist.php), which got the overflow from 262px to 26px --
+   and the last 26 cannot be trimmed, because Priority's content sets its own
+   199px floor whatever it is declared at, and taking it from Child or Days
+   wanted wraps a name or a weekday badge. So the last column stops depending on
+   the arithmetic: whatever the viewport, the column a row is opened from is the
+   one column that is never scrolled off. Precedent is in this same container --
+   .table-scroll .grid-totals pins the board's totals row the same way.
+   NO box-shadow here for the left edge, deliberately: Bootstrap 5.3 paints the
+   row hover with `inset 0 0 0 9999px var(--bs-table-bg-state)`, so declaring one
+   would replace the hover on this cell alone and the pinned column would stop
+   following the row under the pointer. An opaque background is all it needs.
+
+   PINNING A CELL THAT CONTAINS A DROPDOWN NEEDS .dd-open, and this cost a real
+   bug. position:sticky ALWAYS creates a stacking context - unlike relative or
+   absolute, it does so even at z-index:auto - and the "..." menu lives inside
+   one of these cells. Its z-index 1000 is therefore confined to its own cell's
+   layer, and every LATER row's pinned cell, being a sibling stacking context
+   further down the tree, painted straight over the open menu. Measured with a
+   hit test at the menu's centre: rows 1 and 58 covered, only the last row (with
+   nothing after it) passing. Dropping the z-index did NOT fix it, which is what
+   proved the stacking context was coming from `sticky` itself.
+   So the cell holding the OPEN menu is lifted above its neighbours for as long
+   as it is open, which is the one moment it needs to be. */
+#wl-table th.wl-actions,#wl-table td.wl-actions{position:sticky;right:0;
+  background-color:var(--bs-table-bg)}
+#wl-table td.wl-actions.dd-open{z-index:5}
+#wl-table thead th.wl-actions{z-index:3;background-color:var(--lm-surface-head)}
+
+/* ALREADY TALKING TO THEM. Set as --bs-table-bg ON THE ROW rather than as a
+   background on the cells, which is the fight tr.wl-multi's note describes:
+   Bootstrap paints every cell with background-color: var(--bs-table-bg), so
+   redefining the variable is the one tint every cell - the pinned Actions cell
+   included, see above - picks up without a specificity contest, and the hover
+   shadow still lands on top of it. */
+#wl-table > tbody > tr.wl-engaged{--bs-table-bg:var(--lm-engaged-wash)}
+
+/* Contact log entries: left border carries the direction. */
+.comm-entry{border-left:3px solid;padding:.5rem .7rem;margin-bottom:.5rem;background:var(--lm-surface);border-radius:.25rem}
+/* A comment READ BACK from Kidsoft, not written here. Dashed and unsaturated so
+   it never reads as something this team did - most of these are Kidsoft's own
+   form capture, not contact history. */
+.comm-entry-kidsoft{border-left-style:dashed;border-left-color:var(--bs-border-color);
+  background:var(--lm-surface-2);color:var(--lm-ink-3)}
+/* Kidsoft's form capture runs to forty lines. Clamped so it cannot push the
+   contact log the team came to read off the bottom of the modal. */
+.ks-clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* An administrator's Delete on a note (commDeleteBtn in app.js). Grey until it
+   is pointed at: the people who see it read these logs all day, and a red bin
+   on every line shouts louder than the notes. */
+.btn.comm-del{--bs-btn-color:var(--lm-ink-3);--bs-btn-hover-color:var(--bs-danger);
+  --bs-btn-active-color:var(--bs-danger);line-height:1}
+
+/* A STAGE CHANGE in the work modal's timeline, sitting in the same column as the
+   logged contacts (18 Sep 2026).
+
+   THE BORDER COLOUR IS THE WHOLE POINT OF THE MODIFIER. The three directions
+   already spend border-primary (we contacted them), border-info (they contacted
+   us) and border-secondary (internal note), so a stage change needs a fourth
+   value that reads as a different KIND of line rather than a fourth direction --
+   a contact is what happened with the family and outlives the item, a stage
+   change is only ever what this item did. Unsaturated and inset, like the
+   Kidsoft entry above, but SOLID: dashed there means "not written by this team",
+   which a stage change plainly was. */
+.comm-entry-stage{border-left-color:var(--lm-surface-2);background:var(--lm-surface-2)}
+
+/* ---- All centres: the group register ---------------------------------------
+   One row per child, with a chip per centre they are waiting at carrying their
+   place in that centre's queue.
+
+   THE ELEMENT IS NAMED IN EVERY CHIP SELECTOR (`a.wl-cchip`, not `.wl-cchip`).
+   app.css sets `a:hover{color:var(--lm-pink)}` at specificity (0,1,1); a bare
+   class is (0,1,0) and loses to it, so a chip declaring its own colour would
+   still turn brand pink under the pointer. Same trap as the doubled heat
+   classes on the board. */
+a.wl-cchip{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;
+  font-size:.78rem;line-height:1.35;padding:.12rem .35rem .12rem .55rem;margin:.1rem .25rem .1rem 0;
+  border:1px solid transparent;border-radius:1rem;text-decoration:none;
+  background:var(--lm-purple-light);color:var(--lm-purple)}
+a.wl-cchip:hover{border-color:var(--lm-purple);color:var(--lm-purple)}
+.wl-cpos{background:var(--lm-purple);color:#fff;border-radius:1rem;padding:0 .4rem;
+  font-size:.7rem;font-weight:600;font-variant-numeric:tabular-nums}
+/* An offer already out on this application: amber, and var(--lm-warn-text) rather than the
+   --lm-warn fill (#ee9d00), which is 2.22:1 on white and unreadable as text. */
+a.wl-cchip.offer{background:var(--lm-warn-wash);color:var(--lm-warn-text)}
+a.wl-cchip.offer:hover{border-color:var(--lm-warn-text);color:var(--lm-warn-text)}
+a.wl-cchip.offer .wl-cpos{background:var(--lm-warn-text)}
+a.wl-cchip.closed{background:var(--lm-surface);color:#78768c;text-decoration:line-through}
+a.wl-cchip.closed:hover{border-color:var(--lm-line-2);color:#78768c}
+/* No queue-position pill inside it, so the pill's asymmetric padding would leave
+   the name sitting off-centre. Used by the centre queue's "Also waiting at"
+   column, where the number is on the title instead - see elsewhereCell() in
+   waitlist.js for what that 26px buys. The element is named for the same reason
+   every other chip selector names it: a:hover is (0,1,1) and beats a bare class. */
+a.wl-cchip.bare{padding-right:.55rem}
+/* Another centre is already working this family (22 Oct 2026) - waitlist_elsewhere().
+   The amber an open offer uses, because it is the same instruction: somebody
+   is already on this family, look before ringing. The span form is a centre this
+   user does not hold, which otherwise renders as plain text. */
+a.wl-cchip.work, span.wl-cchip.work{background:var(--lm-warn-wash);color:var(--lm-warn-text)}
+a.wl-cchip.work:hover{border-color:var(--lm-warn-text);color:var(--lm-warn-text)}
+span.wl-cchip.work{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap;
+  font-size:.78rem;line-height:1.35;padding:.12rem .55rem;margin:.1rem .25rem .1rem 0;border-radius:1rem}
+
+/* Families waiting at more than one centre. A left accent rather than a row
+   fill: Bootstrap sets background-color AND box-shadow on every table cell, so a
+   row tint has to fight it, while border-left on a cell is unclaimed. */
+tr.wl-multi td:first-child{border-left:3px solid var(--lm-pink);padding-left:.5rem}
+
+/* Overlap bars. The MARK ITSELF IS THE SHARED ONE (.mk-* near the top of this
+   file) - this screen used to draw its own at a different height, with the
+   segments butted together inside a pill instead of separated by the 2px surface
+   gap the rest of the app uses. What is left here is the row layout and the two
+   fills, which are this mark's own business: the track is drawn to the scale
+   maximum, so a short bar reads as short rather than as "no data", and the two
+   segments of a centre's bar are a WHOLE and its PART - shared families are a
+   subset of that centre's queue, so they sit inside one bar rather than beside
+   it as a second series.
+
+   SAME RAMP AS THE DASHBOARD'S ROUND BAR, and calling this an identity pair was
+   the mistake (10 Aug 2026). The purple/pink pair is for categories of EQUAL
+   STANDING - tenure's arrivals against departures, where neither is part of the
+   other. A highlighted SUBSET inside a total is not that: it is a part-to-whole,
+   the same form as the round bar, so it takes the one-hue lightness ramp with
+   the emphasised part dark. Two screens drawing the same form in two palettes is
+   what made them read as different components even after the geometry was
+   shared. --lm-ramp-2 rather than -3 for the remainder, because here the pale
+   step would be the MAJORITY of the bar and sits on the equally pale track. */
+.wl-ov-row{display:grid;grid-template-columns:minmax(6rem,1fr) minmax(4rem,1.6fr) 3.6rem;
+  gap:.7rem;align-items:center;padding:.22rem 0}
+/* Two columns, not three: a single-series bar carries its own figure (.mk-v), so
+   the pairs list has no separate figure cell to align. */
+.wl-ov-pair{grid-template-columns:minmax(6rem,1fr) minmax(6rem,1.9fr)}
+.wl-ov-name{font-size:.85rem;color:#3d3b52;text-decoration:none}
+a.wl-ov-name:hover{color:var(--lm-purple);text-decoration:underline}
+.wl-bar-shared,.wl-sw-shared{background:var(--lm-ramp-1)}
+.wl-bar-only,.wl-sw-only{background:var(--lm-ramp-2)}
+/* DOUBLED, not left to source order: .mk-bar carries the default fill at the
+   same (0,1,0), and which one wins would otherwise depend on where in this file
+   each block happens to sit - the trap the heat classes document. */
+.mk-bar.wl-bar-shared{background:var(--lm-ramp-1)}
+.wl-ov-fig{font-size:.85rem;font-variant-numeric:tabular-nums;text-align:right;color:#3d3b52}
+/* The shared count, in the same colour as the shared segment above it - one
+   fact, one colour, across both cards on this screen. */
+.wl-ov-sub{display:block;font-size:.72rem;color:var(--lm-ramp-1)}
+
+/* ============================================================
+   Occupancy grid
+   Cells are room x weekday. The headline number is PLACES FREE,
+   because that is the thing staff act on. Semantic colours stay
+   conventional: green = nothing to do, amber/red = chase it.
+   ============================================================ */
+.occ-table th{vertical-align:middle}
+.occ-cell{text-align:center;padding:.4rem .3rem;border-left:1px solid rgba(0,0,0,.05)}
+.occ-cell .occ-n{font-size:1.35rem;font-weight:600;line-height:1.1}
+.occ-cell .occ-sub{font-size:.72rem;opacity:.75}
+.occ-quota{font-size:.7rem;vertical-align:super;opacity:.7}
+
+/* Full: the goal state. */
+.occ-full{background:var(--lm-good-wash);color:var(--lm-good)}
+/* 1-2 free: worth a call. */
+.occ-low{background:var(--lm-warn-wash);color:var(--lm-warn-text)}
+/* 3+ free: real lost revenue. */
+.occ-high{background:var(--lm-danger-wash);color:var(--lm-danger)}
+/* Over licensed places - a compliance problem, not a packing one. */
+.occ-over{background:var(--lm-danger);color:#fff}
+.occ-over .occ-sub{opacity:.85}
+/* No capacity recorded, so occupancy cannot be judged at all. */
+.occ-nocap{background:var(--lm-surface-2);color:var(--lm-muted)}
+
+.occ-key{display:inline-block;width:.85rem;height:.85rem;border-radius:.2rem;vertical-align:-1px;margin-right:.25rem}
+.occ-key.occ-full{background:#a8ddc1}
+.occ-key.occ-low{background:#f2dca0}
+.occ-key.occ-high{background:var(--lm-danger-mid)}
+.occ-key.occ-over{background:var(--lm-danger)}
+.occ-key.occ-nocap{background:#d3d1e0}
+
+/* ============================================================
+   Dashboard onboarding / worklist handholding
+   ============================================================ */
+
+/* "How this works" orientation panel */
+.howto-card{border-left:4px solid var(--lm-purple)!important;background:linear-gradient(180deg,#fff,var(--lm-surface))}
+.howto-step{border:1px solid var(--lm-purple-light);border-radius:.6rem;padding:.7rem .8rem;position:relative}
+.howto-step .howto-n{position:absolute;top:-.6rem;left:.7rem;width:1.4rem;height:1.4rem;border-radius:50%;
+  background:var(--lm-purple);color:#fff;font-size:.75rem;font-weight:700;display:grid;place-items:center}
+.howto-step.done{border-color:var(--lm-good-mid);background:var(--lm-good-wash)}
+.howto-step.done .howto-n{background:var(--lm-good)}
+.howto-step.done .fw-semibold{color:var(--lm-good)}
+.howto-step.you{border-color:var(--lm-pink);box-shadow:0 0 0 2px var(--lm-pink-light)}
+.howto-step.you .howto-n{background:var(--lm-pink)}
+.howto-step.you .fw-semibold{color:var(--lm-pink-dk)}
+
+/* Why-it-qualified chips on each worklist row */
+.why-chips{display:flex;flex-wrap:wrap;gap:.15rem .7rem;margin-top:.35rem}
+.why-chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--lm-good);line-height:1.3}
+.why-chip .fa-check{font-size:.65rem}
+.why-chip.warn{color:var(--lm-warn-text)}
+
+/* Plain-language exception note (replaces the bare warning icon) */
+.flag-note{background:var(--lm-warn-wash);border:1px solid #f2dca0;border-radius:.5rem;padding:.4rem .55rem;
+  color:var(--lm-warn-text);max-width:46rem}
+
+/* Per-row action helper text */
+.todo-hint{color:var(--lm-pink-dk);font-weight:600}
+tr.row-skipped td{opacity:.6}
+
+/* Empty / first-run state */
+.empty-ic{width:2.9rem;height:2.9rem;border-radius:.75rem;background:var(--lm-purple-light);color:var(--lm-purple);
+  display:grid;place-items:center;margin:0 auto;font-size:1.25rem}
+
+/* ============================================================
+   The child picker: a combobox, not an inline list
+   ============================================================ */
+
+/* The results used to be a .list-group in the flow of the placement form, so 25
+   three-line rows pushed Days, Status, Room and Flags off the bottom of the
+   modal. The menu is an overlay now: the modal is the same height open or shut.
+   top/left are set explicitly because this dropdown has no Popper instance --
+   Bootstrap only supplies them via .dropdown-menu[data-bs-popper]. */
+/* --bs-dropdown-link-active-bg is one of the few Bootstrap variables app.css
+   does NOT remap above - it stays hardcoded #0d6efd - so the highlighted row
+   would arrive Bootstrap blue in an otherwise purple app. */
+#child-results{top:100%;left:0;margin-top:.125rem;max-height:17rem;overflow-y:auto;padding:.25rem 0;
+  --bs-dropdown-link-active-bg:var(--lm-purple)}
+
+/* Each option is two or three lines. Bootstrap's .dropdown-item is nowrap,
+   which would collapse them onto one clipped line. */
+#child-results .dropdown-item{white-space:normal;padding:.4rem .75rem}
+
+/* Bootstrap fills .active with purple, on which .text-muted (grey) and
+   .text-warning (dark amber) both fall well under 3:1. Keyboard navigation is
+   the fast path here, so the highlighted row has to stay readable. */
+#child-results .dropdown-item.active .text-muted,
+#child-results .dropdown-item.active .text-warning{color:#fff!important}
+
+/* --- Search palette ---------------------------------------------------------
+   The answer to "a parent is on the phone". Top-aligned rather than centred so
+   the list grows downwards as you type instead of the whole dialog jumping.
+   Contrast targets follow the rest of the app: >= 4.5:1 for anything read as
+   text, and the warning amber is var(--lm-warn-text) on white, never Bootstrap's #ffc107. */
+.search-modal .modal-dialog{margin-top:4rem}
+.search-modal .modal-content{border:0;border-radius:.75rem;overflow:hidden}
+.search-modal .modal-body{max-height:60vh}
+
+.search-head{display:flex;align-items:center;gap:.6rem;padding:.75rem 1rem;
+  border-bottom:1px solid var(--lm-surface-2)}
+.search-head-ic{color:var(--lm-faint);flex:0 0 auto}
+.search-head .form-control{border:0;box-shadow:none;font-size:1.05rem;padding:.25rem 0}
+.search-head .form-control:focus{box-shadow:none}
+/* type="search" draws its own clear X inside the field once there is text, which
+   lands a few pixels from the modal's .btn-close and reads as two close buttons.
+   Esc and the palette's own clearing already cover it. */
+.search-head .form-control::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+
+.search-foot{display:flex;align-items:center;gap:1rem;padding:.4rem 1rem;
+  border-top:1px solid var(--lm-surface-2);background:var(--lm-surface);color:var(--lm-muted-2);font-size:.76rem}
+.search-foot kbd{background:#fff;border:1px solid var(--lm-line);border-radius:.25rem;
+  color:var(--lm-muted);padding:.05rem .3rem;font-size:.7rem;margin-right:.15rem;box-shadow:none}
+
+.sr-summary{padding:.5rem 1rem;color:var(--lm-muted-2);font-size:.78rem;
+  border-bottom:1px solid var(--lm-surface);text-transform:uppercase;letter-spacing:.04em}
+
+/* One card per CHILD, carrying their enrolment, board rows and queue rows. The
+   left border is the keyboard cursor: arrow keys move it, Enter opens the first
+   link on the card. */
+.sr-card{padding:.75rem 1rem;border-bottom:1px solid var(--lm-surface);border-left:3px solid transparent}
+.sr-card:last-child{border-bottom:0}
+.sr-card.active{background:var(--lm-surface);border-left-color:var(--lm-pink)}
+
+.sr-top{display:flex;align-items:center;gap:.5rem}
+.sr-name{font-weight:600;color:var(--lm-purple);font-size:1.02rem}
+.sr-meta{color:var(--lm-muted-2);font-size:.8rem;margin-top:.05rem}
+.sr-why{color:var(--lm-ink-2);font-size:.83rem;margin-top:.35rem}
+
+.sr-badge-ok{background:var(--lm-good);color:#fff}
+.sr-badge-info{background:var(--lm-purple-light);color:var(--lm-purple)}
+.sr-badge-muted{background:var(--lm-surface-2);color:var(--lm-ink-3)}
+/* --lm-warn is 2.22:1 on white, so the text is --lm-warn-text (5.08:1). Same
+   warning, same hue family, actually legible - see CLAUDE.md. */
+.sr-badge-warn{background:var(--lm-warn-wash);color:var(--lm-warn-text);border:1px solid var(--lm-warn)}
+
+/* Click to call. The single most-used control on this screen, so it is a real
+   button and not a phone number in grey text. */
+.sr-contact{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+.sr-call{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .7rem;
+  background:var(--lm-purple);color:#fff;border-radius:.4rem;text-decoration:none;
+  font-weight:600;font-size:.9rem;letter-spacing:.01em}
+.sr-call:hover{background:var(--lm-purple-dk);color:#fff}
+.sr-who{color:var(--lm-ink-3);font-size:.83rem}
+.sr-email{color:var(--lm-ink-3);font-size:.83rem;text-decoration:none;display:inline-flex;
+  align-items:center;gap:.3rem}
+.sr-email:hover{color:var(--lm-pink)}
+
+/* A board row or a queue row: where this child actually is. */
+.sr-line{display:flex;align-items:center;gap:.6rem;margin-top:.4rem;padding:.4rem .6rem;
+  border:1px solid var(--lm-surface-2);border-radius:.45rem;text-decoration:none;color:var(--lm-ink-2);
+  background:#fff}
+.sr-line:hover{border-color:#cfc9f5;background:var(--lm-surface);color:var(--lm-purple)}
+.sr-line-ic{color:var(--lm-faint);flex:0 0 auto;width:1.1rem;text-align:center}
+.sr-line-main{flex:1 1 auto;min-width:0;font-size:.85rem;display:flex;
+  align-items:center;gap:.45rem;flex-wrap:wrap}
+.sr-line-tag{flex:0 0 auto;font-size:.72rem;color:var(--lm-ink-3);background:var(--lm-surface);
+  border-radius:.3rem;padding:.1rem .4rem}
+.sr-line-tag.ok{background:var(--lm-good-wash);color:var(--lm-good-text)}
+.sr-line-tag.warn{background:var(--lm-warn-wash);color:var(--lm-warn-text)}
+
+/* A CLOSED or ARCHIVED application: history, and it has to look like history.
+   Sunk against the live lines above it and given no hover, because it is the one
+   row on the card that does not go anywhere - a closed application is not in our
+   queue table, so there is no screen to open. */
+.sr-line-past{background:var(--lm-surface);border-style:dashed;color:var(--lm-ink-3)}
+.sr-line-past:hover{border-color:var(--lm-surface-2);background:var(--lm-surface);
+  color:var(--lm-ink-3)}
+.sr-line-more{border:0;padding-top:.1rem;padding-bottom:.1rem;font-size:.8rem;background:none}
+
+/* The weekday strip is window.dayStrip({wide:true}), like every other one, and
+   .sr-days went with it - it was an inline-flex wrapper round an inline-flex
+   strip. The old .sr-day said it was "the same five boxes as the rest of the
+   app" and was not: its own class, its own width, its own greys, and ONE purple
+   used both for days a child already HOLDS (the room and placement lines) and
+   for days a family is WAITING ON (the queue lines) - two opposite facts in one
+   colour on one result card. */
+
+/* ---- Churn ---------------------------------------------------------------
+   The scale runs the OPPOSITE WAY to the board's heat: on the grid a big
+   number is a place going spare and green means full, whereas here a big
+   number is movement the team had to absorb and green means nothing moved.
+   Same five steps and the same >= 5.3:1 contrast floor, so the two never
+   read as the same scale by accident.
+
+   THESE MUST BE DOUBLED OR ELEMENT-QUALIFIED (`td.tn-low`, not `.tn-low`):
+   Bootstrap's `.table>:not(caption)>*>*` is (0,1,1) and sets background-color
+   AND color on every cell, so a single class silently loses and the whole
+   column renders plain white. */
+td.tn-none {color:var(--lm-faint-2)}
+td.tn-low  {background:var(--lm-good-mid);color:var(--lm-good-text)}    /* 6.8:1  - 1-2 movements */
+td.tn-mid  {background:var(--lm-warn-mid);color:var(--lm-warn-ink)}     /* 6.4:1  - 3-5 */
+td.tn-high {background:var(--lm-danger-mid);color:var(--lm-danger-text)}   /* 6.4:1  - 6-9 */
+td.tn-vhigh{background:var(--lm-danger);color:#fff}      /* 7.5:1  - 10+ */
+
+/* Expected movement - progression up a room, a school leaver, a transfer to
+   another Little Miracles centre. Quiet on purpose: a row that is all grey is
+   a room behaving exactly as the organisation wants. */
+td.tn-expected{color:var(--lm-muted)}
+/* ELEMENT-QUALIFIED, same trap as the heat steps above: the quiet zero is set
+   directly on a <td> in the ladder (it is a <span> inside one on the overview),
+   and at (0,1,0) it lost to Bootstrap's cell colour and rendered as body ink. */
+.tn-zero,td.tn-zero{color:var(--lm-line-2)}
+
+.tn-room{min-width:13rem}
+.tn-roll{min-width:5.5rem}
+.grid-table th.tn-room,#ladder th.tn-room{background:#fff}
+#ladder th.tn-grp,#ladder thead th{white-space:nowrap}
+/* Columns of small figures scan vertically only if the digits are one width. */
+#ladder tbody td{font-variant-numeric:tabular-nums}
+
+/* ---- The ladder's two column groups ---------------------------------------
+   The table has two columns called "Left" and two called "Joined", and that is
+   correct - leaving over the changeover and leaving in June are different
+   events. What was missing was any mark saying where one group ends and the
+   next begins, so the centred group caption floated over nothing and the reader
+   had to count cells. .tn-sep carries the group boundary all the way down the
+   body; .tn-mid-rule is the lighter split between arrivals and departures
+   INSIDE a group, so the reading order is in, then out, twice.
+
+   Borders, not backgrounds: every one of these cells can also be carrying a
+   heat fill, and a band tint underneath would have to lose to it. */
+#ladder th.tn-sep,#ladder td.tn-sep{border-left:2px solid var(--lm-line-2)}
+#ladder th.tn-mid-rule,#ladder td.tn-mid-rule{border-left:1px solid var(--lm-line)}
+
+#ladder thead th.tn-grp{background:var(--lm-surface-2);color:var(--lm-purple);
+  border-bottom:2px solid var(--lm-purple-light);font-weight:600}
+#ladder thead th.tn-sub-h{background:var(--lm-surface);color:var(--lm-ink-3);
+  font-size:.75rem;font-weight:600;line-height:1.15}
+
+/* TWO HEADER ROWS NEED TWO STICKY OFFSETS. .table-sticky pins every thead th at
+   top:0, which is right for the one-row headers everywhere else and stacked this
+   one's sub-headers directly on top of its group names the moment the ladder
+   scrolled - and the ladder always scrolls, a centre has ten rooms. The group
+   row is given a fixed height so the sub-header row can be offset by exactly
+   that much; the two rowspan cells sit in the first row and stay at top:0,
+   which is what keeps the Room column covered behind both. */
+#ladder thead tr:first-child th{height:1.9rem;padding-top:0;padding-bottom:0}
+#ladder thead tr:nth-child(2) th{top:1.9rem}
+/* Bootstrap sets `thead{vertical-align:bottom}`, which is right for a one-line
+   header and drops the two rowspan labels onto the sub-header's baseline, where
+   they read as part of the second group rather than as their own columns. */
+#ladder thead th[rowspan]{vertical-align:middle}
+
+/* The room name cell is painted white so it stays opaque under the sticky
+   header; on the totals row it has to take the totals row's own surface, or the
+   one cell that names the row is the one cell that does not look part of it.
+   (Id selector, because #ladder th.tn-room above is one too.) */
+#ladder .grid-totals th.tn-room{background:var(--lm-surface)}
+
+/* .tn-tile / .tn-tile-big are GONE (10 Aug 2026). Tenure's tiles were the only
+   ones in the app that put the number above the label and set their own size,
+   weight and severity colours; they now use window.statTile like every other
+   module, so an amber figure here is the same amber as an amber figure anywhere
+   else. The five-step movementClass() scale survives on the TABLE cells below,
+   where it is a genuine heat scale rather than a private ramp for one figure.
+
+   .tn-muted-row IS GONE THE SAME WAY (21 Sep 2026). A centre that cannot be
+   ranked was dimmed here at opacity .62, which took the centre's own LINK down
+   with it and read as a row switched off rather than a row whose figures are
+   missing; the Dashboard's centre table puts .text-muted on the tr and leaves
+   the link alone, and that is what the All centres table does now. */
+
+/* ---- Tenure: movement bars -------------------------------------------------
+   TWO SERIES, GROUPED, NOT DIVERGING. Diverging encodes polarity and neither
+   direction here is the good one - the organisation wants arrivals and
+   departures both at zero - so these are two categories sharing a baseline and
+   a scale, and total ink reads as gross movement.
+
+   The purple is LIFTED from brand #2e3192 to #4650b3. Validated against the
+   six data-viz checks: brand purple sits at OKLCH L 0.378, below the 0.43-0.77
+   band a chart mark needs, so it reads as a dark blot rather than a hue. At
+   #4650b3 the pair passes every check - CVD separation dE 13.3 (target 8),
+   normal-vision dE 30.9 (floor 15), both >= 3:1 on white. Do not "correct" it
+   back to the brand hex; it is deliberately off-brand by one step, and only
+   inside a chart mark.
+
+   Named --lm-mark / --lm-mark-alt because the pair is now used by more than one
+   screen (the All centres waitlist draws its shared-queue bars with it). One
+   definition, so a second chart cannot quietly pick a different purple.
+
+   THE PAIR IS FOR IDENTITY AND ONLY FOR IDENTITY. Where the categories are
+   ORDERED - resolved to unresolved, done to outstanding - the form is a
+   one-hue ramp with monotone lightness steps instead, and that is
+   --lm-ramp-1..3 below. Using the pair for an ordered scale is what put the
+   dashboard's round-progress bar in the opposite colour order to the waitlist's
+   overlap bar: same idiom, same two hues, reversed, for no reason a reader could
+   see. The ramp keeps purple and pink meaning one thing each across the app.
+
+   Ramp gates (ordinal, not categorical - so lightness carries the order and
+   there is no CVD adjacency to satisfy): monotone L, adjacent dL >= 0.06,
+   light end >= 2.0:1 on white, single hue. Measured in PHP, this box having no
+   Node: L 0.389 / 0.591 / 0.774, dL +0.202 and +0.183, light end 2.06:1, hue
+   spread 3.2 deg. Adjacent steps also clear dE 18-20 under Machado 2009
+   protanopia and deuteranopia at severity 1.0, well past the categorical
+   target of 8, because a lightness ramp survives CVD by construction. */
+:root{--lm-mark:#4650b3; --lm-mark-alt:#ed387d;
+      --lm-ramp-1:#363b82; --lm-ramp-2:#6f76bd; --lm-ramp-3:#adb2dc;
+      --tn-out:var(--lm-mark); --tn-in:var(--lm-mark-alt)}
+
+/* THE GEOMETRY IS THE SHARED MARK, and the private copy that used to live here
+   is gone (21 Sep 2026). .tn-bar / .tn-bar-row / .tn-legend / .tn-key / .tn-sw
+   were a third set of mark and legend rules - the same idea as the .mk-* block
+   near the top of this file, with their own height, radius, gap and no track --
+   so the Dashboard's ranked centre tables and this one drew the same kind of
+   mark as two different components. The markup now uses .mk-track / .mk-bar and
+   .mk-legend / .mk-key / .mk-sw like everything else, and the only thing left
+   here is the FILL, which is per-scale by design (see the MARKS block).
+
+   DOUBLED, not left to source order: .mk-bar carries the default --lm-mark fill
+   at (0,1,0), so a single class beside it would be a coin toss settled by where
+   it happens to sit in this file. Same rule as .mk-bar.wl-bar-shared. */
+.tn-plot-cell{display:flex;flex-direction:column;gap:2px}   /* 2px SURFACE gap, not a border */
+/* EVERY ROW KEEPS BOTH SLOTS, zero or not. .mk-track is empty when a series is
+   zero (a mark with a min-width and no value is a hairline that reads as one),
+   and an empty track with line-height:0 has no height at all - so the pair
+   would stop sharing a baseline down the column and, worse, the row's tooltip
+   would have nothing left to hover. Same reasoning as num()'s third argument on
+   the ladder. The height is the shared mark's own 7px. */
+.tn-plot-cell .mk-track{flex:0 0 auto;height:7px}
+.mk-sw.tn-out,.mk-bar.tn-out{background:var(--tn-out)}
+.mk-sw.tn-in, .mk-bar.tn-in {background:var(--tn-in)}
+
+/* The LADDER's key, which is a different question from the overview's two
+   series above: it says which cells are quiet and which are loud, and that is
+   the only thing about this screen a reader cannot work out unaided.
+   "Expected" has no fill in the table - it is muted type on a plain cell - so
+   its swatch is an empty cell with a rule round it rather than a colour that
+   appears nowhere. The other swatch is the heat scale drawn as the ramp it
+   actually is; a single block would claim one of its four steps is the meaning. */
+.mk-sw.tn-sw-exp {background:#fff;box-shadow:inset 0 0 0 1px var(--lm-faint)}
+.mk-sw.tn-sw-ramp{width:2.6rem;background:linear-gradient(90deg,
+  var(--lm-good-mid) 0 25%,var(--lm-warn-mid) 25% 50%,
+  var(--lm-danger-mid) 50% 75%,var(--lm-danger) 75% 100%)}
+
+/* .tn-fig is gone: the All centres table is a .dgrid now, so its figures take
+   .dgrid-fig with every other ranked centre table in the app. The LADDER keeps
+   its own tabular-nums rule above (#ladder tbody td), because that table is a
+   heat grid and not a .dgrid.
+
+   The centre names are .ov-centre-link, the app's one treatment for a centre
+   name in a table - no underline, colour on hover. This screen had a private
+   pair of #overview rules that underlined on hover instead, so the same link on
+   the Dashboard and here behaved differently. */
+
+/* --- Dashboard pipeline ---------------------------------------------------
+   A row of stage counts, each with a bar showing its share of the largest.
+   Bars are a SHARE, not a conversion rate - there are no rates on this screen
+   and the CSS must not imply one, so the stages are separate blocks rather than
+   a single tapering funnel shape. */
+/* 6.5rem, down from 7.5 (22 Oct 2026), when "Attempted contact" made it eight
+   stages. Measured at 1280: 998px of card, and at 7.5rem the eight tiles came to
+   985px plus seven 8px gaps, so Enrolled fell onto a line of its own across the
+   whole card. At 6.5rem they need 873px and sit on one row; the longest label
+   ("Attempted contact", 119px) sets its own tile wider whatever the minimum. */
+.pipeline { --pipe-min: 6.5rem; }
+.pipe-stage {
+  min-width: var(--pipe-min);
+  padding: .5rem .75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .5rem;
+  background: #fff;
+}
+.pipe-bar {
+  height: .375rem;
+  border-radius: .25rem;
+  background: var(--bs-secondary-bg);
+  overflow: hidden;
+  margin-top: .35rem;
+}
+.pipe-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--lm-mark, #4650b3);
+  border-radius: inherit;
+}
+
+/* --- A row of headline figures inside a card ------------------------------
+   A GRID, NOT A WRAPPING FLEX ROW. As flex, the four re-enrolment figures fit
+   across the full-width card and dropped the fourth onto a line of its own in
+   the narrow half of the row below it - one orphan figure under a wide gap,
+   which reads as a mistake. auto-fit keeps them in equal columns at whatever
+   width the card happens to be, so a hint wraps to two lines instead. */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1rem 1.5rem;
+}
+
+/* --- Mon-Fri strip --------------------------------------------------------
+   The declines list, In progress and the offer dialog all draw
+   window.dayStrip() now. This block redeclared .dstrip a SECOND time (a
+   different gap from the board's, and the later one silently won everywhere)
+   and added a third box class in a third set of colours. Both are gone; the one
+   definition is the DAY STRIP block near the top of this file. */
+
+/* The declines table. Only the name is emphasised: the room and the days are
+   what you read next, and bolding those too flattens the row. */
+.dash-free th { font-weight: 600; }
+.dash-free thead th {
+  font-size: .75rem; text-transform: uppercase; letter-spacing: .02em;
+  color: var(--bs-secondary-color); font-weight: 600;
+}
+.dash-free td, .dash-free tbody th { font-size: .875rem; }
+/* The table shrinks to its content, so the columns need their own breathing
+   room - otherwise a long child name sits hard against the centre beside it. */
+.dash-free th, .dash-free td { padding-right: 1.75rem; }
+.dash-free th:last-child, .dash-free td:last-child { padding-right: .5rem; }
+.dash-free .dash-free-days { white-space: nowrap; }
+/* Shrink to its content instead of filling the card. Stretched to full width the
+   extra space landed between Room and Days, and a strip of weekday boxes 300px
+   from the room it belongs to stops reading as one row. */
+.dash-free { width: auto; min-width: min(100%, 24rem); }
+
+/* ============================================================
+   Dashboard, ALL CENTRES - the morning overview
+   ------------------------------------------------------------
+   The group view is the first screen the team sees of a day, so
+   it leads with one figure and ranks everything under it. These
+   are the marks that carry that, and they all obey one set of
+   specs so the page reads as a single system:
+
+     * thin marks (7-9px), never a thick saturated block
+     * a 4px rounded DATA END, square at the baseline
+     * a 2px gap in the SURFACE colour separates touching fills -
+       never a border drawn round a mark to do that job
+     * colour does exactly one job per mark: the meter carries
+       severity (a status scale), the bars and the stack carry
+       identity (the validated --lm-mark trio)
+     * text never wears a mark's colour; the figures beside a
+       mark are in ink, and identity comes from the swatch
+
+   EVERY td/th RULE HERE NAMES THE ELEMENT. Bootstrap's
+   `.table>:not(caption)>*>*` is (0,1,1) and sets background,
+   colour and box-shadow on every cell, so a bare class at
+   (0,1,0) loses and the mark silently renders as a plain white
+   cell - the same trap the heat classes document, and no PHP
+   test or page-render check catches it.
+   ============================================================ */
+
+/* --- The hero band ------------------------------------------
+   One figure, the rate it comes out of, and the demand pressing
+   on it. Exactly one hero per view: four equal tiles said "these
+   matter the same amount", and on a morning overview they do not. */
+.dash-hero{display:grid;grid-template-columns:minmax(12rem,17rem) 1fr;gap:1.25rem 2.5rem;
+  align-items:start}
+.dhero-fig{border-right:1px solid var(--bs-border-color);padding-right:2rem}
+/* >=48px, and the SAME sans as everything else - a display face on a hero figure
+   reads as off-brand decoration. Proportional figures, NOT tabular: equal-width
+   digits make a number like 111 look loose at this size. */
+.dhero-n{font-size:3.25rem;line-height:1;font-weight:600;color:var(--lm-purple);
+  font-variant-numeric:proportional-nums;margin:.1rem 0 .2rem}
+.dhero-rest{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));
+  gap:1rem 2rem}
+/* Brand purple, like the hero figure it sits beside: these two carry no state
+   (a queue length is neither good nor bad), and at this size black read as
+   body copy that happened to be large. */
+.dhero-v{font-size:1.75rem;font-weight:600;line-height:1.1;margin:.1rem 0;
+  color:var(--lm-purple)}
+.dhero-meter{margin:.45rem 0 .35rem}
+.dhero-meter .dm-v{font-size:1.25rem;font-weight:600;color:inherit}
+@media (max-width:991.98px){
+  .dash-hero{grid-template-columns:1fr}
+  .dhero-fig{border-right:0;border-bottom:1px solid var(--bs-border-color);
+    padding-right:0;padding-bottom:1rem}
+}
+
+/* --- Needs attention ----------------------------------------
+   The list that replaced a stack of alert banners. Four banners
+   shout at exactly equal volume, so an item whose date had
+   already passed looked no more urgent than one with a month to
+   run - while two more of the same kind of figure sat buried as
+   columns in a table further down. Ordered by how hard the
+   deadline is, never by size: whether a big number is a problem
+   or normal batching is the team's judgement to make.
+
+   Each row carries an icon and words as well as a colour,
+   because these are STATUS colours and a status is never
+   encoded as colour alone. */
+.dattn-row{display:flex;align-items:center;gap:.85rem;padding:.7rem 0;
+  border-top:1px solid var(--bs-border-color)}
+.dattn-row:first-child{border-top:0;padding-top:0}
+.dattn-row:last-child{padding-bottom:0}
+.dattn-ico{flex:0 0 auto;width:2rem;height:2rem;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;font-size:.9rem}
+.dattn-bad {background:var(--lm-danger-wash);color:var(--lm-danger)}
+.dattn-warn{background:var(--lm-warn-wash);color:var(--lm-warn-deep)}
+.dattn-info{background:var(--lm-purple-light);color:var(--lm-purple)}
+/* tabular here: the counts stack vertically down the list and must align.
+   The count carries its row's status, which at 24px means the colour has to
+   survive being large: the old text amber #8a6100 was a dull dark yellow and
+   read as mustard at this size. It is now var(--lm-warn-text) via .text-warning - same
+   lightness, more chroma, 19 deg further from yellow - so the count can be
+   coloured again without looking ill. See the warning-amber block at the top. */
+.dattn-n{flex:0 0 auto;min-width:3rem;text-align:right;font-size:1.5rem;font-weight:600;
+  line-height:1;font-variant-numeric:tabular-nums;color:var(--lm-purple)}
+.dattn-n-bad {color:var(--lm-danger)}
+.dattn-n-warn{color:var(--lm-warn-text)}
+/* An informational row carries no state, so it takes brand purple rather than
+   ink - at 24px black read as body copy that happened to be large. The icon
+   disc beside it is what says which kind of row this is; the colour never was. */
+.dattn-txt{flex:1 1 auto;font-size:.9375rem;line-height:1.35}
+.dattn-act{flex:0 0 auto;margin-left:auto;white-space:nowrap}
+.dattn-jump{font-size:.8125rem;text-decoration:none;white-space:nowrap}
+.dattn-jump:hover{text-decoration:underline}
+.dattn-links{display:inline-flex;flex-wrap:wrap;gap:.6rem;font-size:.8125rem}
+
+/* --- The meter: how full, as severity -----------------------
+   The fill carries the state and the unfilled TRACK is a lighter
+   step of the same hue, so the state reads across the whole bar
+   rather than only the part that is filled. Thresholds match the
+   summary tiles exactly - a centre reading amber here and green
+   in a tile above it would be the old Board/Fill disagreement
+   all over again, in colour. */
+.dm{display:inline-flex;align-items:center;gap:.5rem;width:100%}
+.dm-track{flex:1 1 auto;min-width:2.5rem;height:7px;border-radius:4px;overflow:hidden}
+.dm-track>span{display:block;height:100%;border-radius:0 4px 4px 0}  /* square at baseline */
+.dm-good{background:var(--lm-good-wash)} .dm-good>span{background:var(--lm-good)}   /* 5.0:1 on white */
+.dm-warn{background:var(--lm-warn-wash)} .dm-warn>span{background:var(--lm-warn)}   /* 2.2:1 - label relief */
+.dm-bad {background:var(--lm-danger-wash)} .dm-bad >span{background:var(--lm-danger)}   /* 7.5:1 on white */
+.dm-v{flex:0 0 auto;min-width:2.6rem;text-align:right;font-size:.8125rem;
+  font-variant-numeric:tabular-nums}
+
+/* --- The bar and the stack ----------------------------------
+   The GEOMETRY of both is shared with the Waitlist and lives in
+   the MARKS block near the top of this file (.mk-*). Only the
+   colours are here, because a palette is chosen from the mark's
+   job and these two marks do different jobs.
+
+   The bar: a single series, so there is no legend box - the
+   column header names what is plotted. TWO MEASURES OF DIFFERENT
+   SCALE NEVER SHARE AN AXIS: free place-days and families waiting
+   get a column each, scaled to its own maximum, because squashing
+   one against the other's maximum invents a comparison that is
+   not in the data.
+
+   The stack: round progress, part-to-whole.
+
+   ONE HUE, LIGHT TO DARK, BECAUSE THESE CATEGORIES ARE ORDERED:
+   answered -> yet to answer -> school age and no answer runs
+   from resolved to unresolved-and-unknown, and swapping two of
+   them would change the meaning. That makes it ORDINAL, which
+   takes a lightness ramp; the purple/pink pair is for IDENTITY,
+   where the categories have no order. Built with the pair it
+   also read as inverted against the waitlist's overlap bar,
+   which draws its highlighted subset pink-first at the baseline -
+   two stacked bars, same hues, opposite order.
+   Dark is done, so the bar fills as the round progresses. */
+.dseg-done  {background:var(--lm-ramp-1)}
+.dseg-todo  {background:var(--lm-ramp-2)}
+.dseg-school{background:var(--lm-ramp-3)}
+
+/* --- The comparison tables ----------------------------------
+   Named elements throughout, per the specificity note above.
+   The mark columns get a width so a bar has room to be read as a
+   length; the figure columns are tabular so they align down the
+   column, which is the one place tabular-nums belongs. */
+/* THE DASHBOARD SCROLLS AS A PAGE, NOT AS A STACK OF BOXES.
+   .table-scroll caps its height at calc(100vh - 21rem) so the board's room x
+   weekday grid can scroll under a sticky header. Every table on this screen is
+   seven rows or a dozen children, and inside a half-width card that cap turned
+   the declines list - the ONE list here that has to be scannable, because it is
+   the only forward-looking vacancy signal the API gives - into a 464px box with
+   its own scrollbar, showing 8 of 13 children and hiding the rest behind a
+   gesture nobody makes on a dashboard. The wrapper is kept for the horizontal
+   overflow on a narrow viewport; only the vertical cap is dropped. Doubled class
+   so it beats .table-scroll's own (0,1,0). */
+.table-scroll.ts-nocap{max-height:none}
+
+/* ------------------------------------------------------------
+   SEEING A WHOLE CENTRE AT ONCE (16 Sep 2026)
+
+   Asked for as "can we please make it so we can see Tuggerah all together
+   rather than scrolling. Even if we make the 4 boxes along the top a little
+   thinner to allow for it?".
+
+   Tuggerah is the tallest board in the organisation - eleven rooms plus the
+   totals row - and the grid is the one table in the app that is genuinely worth
+   seeing whole: the point of a heat map is comparing rooms you are not looking
+   at. Measured at 1280x800 before any of this: 748px of table in a 269px
+   scroller, with 422px of chrome above it and 109px below.
+
+   NOTHING HERE HIDES ANYTHING. Every figure, caption, badge and colour the grid
+   had is still on it; what came out is white space, plus one sentence the legend
+   was already saying. Measured at 1920 wide:
+
+                         was  squeezed  given back  SHIPPED
+     the four tiles     155px    85px      69px       69px
+     a grid row          58px    44px      52px       76px   <- see below
+     the totals row      58px    49px      35px       35px
+     the legend          68px    40px      37px       37px
+     the page subtitle   24px     0         0          0
+     the whole table    748px   569px     646px      908px
+
+   THE CELL IS NOT PART OF THIS BUDGET - it ended up TALLER than it started, and
+   the squeeze is what pays for that. See the rule below for why, and why it took
+   three passes to learn. Everything else here stays tight precisely so the extra
+   cell height costs as few rows as possible.
+
+   Spend it cheapest-first, and the order is not obvious: dead gutter (Bootstrap's
+   gy on a single row of tiles) -> chrome padding and margins -> a line-height ->
+   a row that is a FOOTER rather than a cell -> and STOP. Two things that looked
+   free and measured worse are recorded at their rules below.
+
+   It is the PLACEMENT GRID ONLY, on purpose. Every other table in the app is a
+   dozen rows in a card and reads better with air round it; this one is a
+   fixed-size matrix somebody scans. .tiles-tight is opted into by #board-summary
+   in placement.php rather than being global for the same reason.
+   ------------------------------------------------------------ */
+
+/* The four tiles: label and figure on ONE line, the caption under them. Nothing
+   is dropped - the caption gets the full width of the tile and so stops
+   wrapping, which is where a third of the saving came from. !important is not
+   laziness here: Bootstrap's spacing utilities (.py-3, set by window.statTile)
+   are themselves !important, so a plain rule cannot reach them. */
+.tiles-tight .card-body{display:flex;flex-wrap:wrap;align-items:baseline;
+  column-gap:.6rem;padding:.5rem .9rem!important}
+/* THE FIRST LINE IS A HEADING, NOT A CAPTION (16 Sep 2026).
+   Reported as "the first line needs to be larger and bolder - 'Can be granted'
+   needs to be bigger and bolder, but 'families who asked, place now free' can
+   remain as is". It was .text-muted.small, which is the right weight for the
+   sentence UNDERNEATH the figure and the wrong one for the thing that says what
+   the figure IS: the two were set identically and the tile read as a number
+   between two footnotes.
+   IT COSTS NO HEIGHT. The label shares its line with the 1.5rem figure, so the
+   line is 30px whether the label is 14px or 17px - the tile is the same size it
+   was. !important on the colour because Bootstrap's .text-muted carries one. */
+.tiles-tight .card-body > div:first-child{font-size:1.05rem;font-weight:600;
+  line-height:1.3;color:var(--bs-body-color)!important}
+.tiles-tight .card-body > .fs-3{font-size:1.5rem!important;line-height:1.25;margin-left:auto}
+/* The caption, whatever it is, takes its own line and is left exactly as it was. */
+.tiles-tight .card-body > div:last-child:not(.fs-3){flex-basis:100%}
+
+/* The 76px block moved to `td.cell` up in the cell-grid section (21 Sep 2026),
+   because the OVERVIEW needs it too and was never going to opt into a class
+   called "tight". Everything that stays here is genuine tightening. */
+.grid-tight .cell-sub{line-height:1.3}
+.grid-tight th.grid-room{padding:.5rem .5rem;line-height:1.3}
+.grid-tight th.grid-room .small{line-height:1.25}
+.grid-tight thead th{padding:.25rem .4rem;line-height:1.2}
+.grid-tight .grid-totals th,.grid-tight .grid-totals td{padding:.4rem .4rem;line-height:1.3}
+/* THE TOTALS ROW IS A FOOTER, NOT A HEAT CELL, so its two figures share a line:
+   "152/170  18 free" rather than one stacked on the other. The cells above it
+   stack because a heat block has to read as a block at a glance across 55 of
+   them; this row is read once, deliberately, and stacking bought it a second
+   line of height for nothing. They are inline-block rather than nowrap, so on a
+   narrow viewport they simply wrap back to two lines instead of overflowing a
+   fixed-layout column. Worth 20px, which is the last of what the cells needed
+   back.
+
+   ONLY WHERE THEY ALWAYS FIT ON ONE LINE. Tried unguarded first and 1280 was
+   worse for it: the columns are ~120px there, so "152/170  18 free" fitted on
+   one line in three columns and wrapped in the other two, and a totals row where
+   some cells are one line and some are two reads as a rendering fault. Below
+   1400 it stacks as it always did - and a window that narrow cannot fit the
+   board whole anyway, so the 20px buys nothing there. */
+@media (min-width: 1400px) {
+  .grid-tight .grid-totals td > div{display:inline-block}
+  .grid-tight .grid-totals td > div + div{margin-left:.4rem}
+}
+
+/* The gaps between the four blocks of this screen, which add up to a row of the
+   grid on their own. Tiles, banners, grid and legend, all still separated -
+   just not by the 16px that suits a page you scroll. */
+.board-tight{padding-top:.5rem!important;padding-bottom:.35rem!important}
+.board-tight #board-summary{margin-bottom:.5rem!important}
+.board-tight .page-head{margin-bottom:.5rem}
+.board-tight #grid-legend{margin-top:.35rem!important}
+/* THE YEAR NOTICES STAY STACKED, AND THAT WAS TESTED RATHER THAN ASSUMED.
+   Pairing them side by side looked like 50 free pixels - two short sentences, one
+   full-width row each - and MEASURED IT IS A LOSS. The coming-free banner carries
+   a sentence AND a row of month chips, so at half width it wraps: 1920 saved only
+   8px, and 1600 went from 92px to 114px, WORSE than stacking. A banner needs
+   ~1000px to hold its line, which no half of a 1920 screen has. Only the padding
+   and the gap came down. */
+.board-tight #year-notices .alert{margin-bottom:.5rem!important;
+  padding-top:.35rem!important;padding-bottom:.35rem!important}
+/* The legend needs 2068px to sit on one line and has 1672 at 1920, so it is two
+   lines and no gap or line-height gets it to one - dropping an entry would, and
+   nothing here is worth dropping. The tightening is what it is: 68px -> 37px. */
+.grid-tight-legend{column-gap:.9rem!important;line-height:1.2}
+
+/* The legend under the grid. Same words, one line less: it is a key, read once
+   and then never again, and it was costing 68px of the thing it explains. */
+.grid-tight-legend{row-gap:.15rem!important}
+
+.dgrid td.dgrid-mark,.dgrid th.dgrid-mark{width:9.5rem;min-width:8rem}
+.dgrid td.dgrid-stack,.dgrid th.dgrid-stack{width:30%;min-width:8rem}
+.dgrid td.dgrid-fig{font-variant-numeric:tabular-nums;white-space:nowrap}
+.dgrid thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--bs-secondary-color);font-weight:600}
+.dgrid td,.dgrid tbody th{font-size:.9375rem}
+
+/* The declines list sits in HALF the page width on the group view, where
+   .dash-free's 1.75rem column gutters - sized for the full-width card on a
+   centre - cost about 5rem and pushed nearly every child name and room onto two
+   lines. Scoped to the group card so the centre view keeps the spacing it was
+   tuned for. */
+#dash-free .dash-free th,#dash-free .dash-free td{padding-right:.9rem}
+#dash-free .dash-free{min-width:100%}
+
+/* ------------------------------------------------------------
+   IN PROGRESS - every family part-way through enrolling.
+   One list: an offer is not a different kind of row, it is a row whose stage is
+   "Offered". Ordering is server-side (work_urgency_sort), so a hard deadline
+   always sits above a soft one.
+   ------------------------------------------------------------ */
+/* The whole row is the control. Named elements, not bare classes, so Bootstrap's
+   .table>:not(caption)>*>* at (0,1,1) cannot win - the doubled-heat-class trap. */
+tr.prog-row{cursor:pointer}
+tr.prog-row:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
+/* An offer nobody is tracking. Faded rather than hidden: it is real, it has a
+   deadline, and it is the NORMAL case today because offers are made from the
+   waitlist and that screen has no start-working button. */
+tr.prog-untracked th,tr.prog-untracked td{color:var(--lm-ink-2)}
+/* Closed, shown only under "All incl. closed" - history, not a worklist. */
+tr.prog-closed{opacity:.6}
+
+/* THE NAME COLUMN GETS ITS WIDTH BACK ABOVE 1400px, and only there. At 1280 with
+   the sidebar out the queue's columns spend the 1030px box exactly (see
+   _incl/docs/waitlist.md), so Child is declared at its own 107px floor. Wider
+   than that there is slack - but table-layout:auto hands slack out in proportion
+   to content, which favours the widest columns and not the one holding the name,
+   so "Frederick Patterson" wrapped at 1440 where it had not before the "Also
+   waiting at" column existed. Declared, not fought over: this cannot reach the
+   narrow case, which is the one that was measured. */
+#wl-table th.wl-child{min-width:7rem}
+@media (min-width:1400px){#wl-table th.wl-child{min-width:9.5rem}}
+
+/* TEN COLUMNS BELOW 1400px (11 Nov 2026). "Contacted" cost ~90px, and at
+   1280 the table was already 9-31px past its 1030px box at four centres, so the
+   new column sat hidden under the pinned Actions. Below 1400 only: cells keep
+   .3rem a side instead of .5rem, which lets Days wanted drop to 11.5rem (the five
+   .dbox badges are 10.9rem; 11.5 minus .6rem of padding is exactly that, and 751
+   strips over eight centres measured on one line) and Guardian to 8.5rem (its
+   email is capped at 8rem by .wl-email). Measured 6-38px spare at 1280 across
+   all eight centres. These two widths live here, not inline on the <th>, for the
+   reason .wl-child does: an inline style beats any media query. */
+#wl-table th.wl-guardian{min-width:9rem}
+#wl-table th.wl-days{min-width:12rem}
+@media (max-width:1399.98px){
+  #wl-table>:not(caption)>*>*{padding-left:.3rem;padding-right:.3rem}
+  #wl-table th.wl-guardian{min-width:8.5rem}
+  #wl-table th.wl-days{min-width:11.5rem}
+}
+
+/* ===== BEHAVIOUR SUPPORT PLANS =============================================
+   One card per child on a plan. The card reuses the cell panel's held-row
+   component (.cp-held / .cp-held-row) for the days being kept, because a held
+   day is the same fact on both screens and drawing it twice is how two marks for
+   one thing start diverging - the six-implementations problem the stat tile and
+   the day strip were both merged to end. */
+
+/* The name is the row's handle and goes to the cell it is about, so it has to
+   read as a link without the underline that would fight the card's other rules.
+   Sized like a card heading rather than body text: it is the subject. */
+.sp-name{font-size:1.05rem;font-weight:600;color:var(--lm-purple);text-decoration:none}
+.sp-name:hover{color:var(--lm-purple-dk);text-decoration:underline}
+
+/* THE LAST THING ANYBODY SAID TO THIS FAMILY, which is what the screen is
+   ordered by and therefore the line a reader is looking for. Set on the surface
+   tint so it reads as a quoted record rather than as more of the card's chrome,
+   the same treatment .wish-note gives a parent's own words. */
+.sp-last{background:var(--lm-surface);border-radius:.25rem;padding:.45rem .6rem;font-size:.85rem}
+/* ITS OWN LINE, not a trailing span - the roster's .rs-sub lesson: inline, one
+   summary in four wraps and the block goes ragged at exactly one card width. */
+.sp-last-meta{display:block;font-size:.72rem;color:var(--lm-muted);margin-top:.15rem}
+/* NO BOOKINGS AT ALL, which is not the same as an unknown week. Sits beside the
+   strip rather than under it: the strip is already five grey boxes saying it,
+   and this names the state so an all-grey row is not read as a rendering fault. */
+.sp-nodays{margin-left:.5rem;font-size:.78rem;color:var(--lm-muted)}
+
+/* THE PLACEMENT EDITOR'S FLAGS - two rows, and the break IS the grouping.
+   Five checkboxes in one wrapping row laid out to their own label widths, so
+   nothing lined up and the fifth was orphaned on a line of its own. The first
+   three are what is true of the child; the two support plans are a different
+   kind of thing and get the second line to themselves. No columns to align and
+   nothing to explain - where the line breaks says it. */
+.place-flags{display:flex;flex-direction:column;gap:.55rem}
+.place-flags-row{display:flex;flex-wrap:wrap;gap:.55rem 1.5rem}
+.place-flags .form-check{margin-bottom:0}
+
+/* ---- The support plans screen: the card, and the plan wizard ----------------
+
+   THE WHOLE BLOCK OPENS THE PLAN, so it has to look like the button it is - the
+   note .grid-table th.grid-room already carries for the room name. The link it
+   replaces sat at the far right, the opposite end of the row from the sentence
+   somebody had just read. role/tabindex/keydown in the JS; this is the part the
+   eye needs. */
+.sp-plan{border:1px solid var(--lm-line);border-radius:.4rem;
+  background:var(--lm-surface);margin-bottom:.6rem;cursor:pointer;
+  transition:background-color .1s,border-color .1s}
+/* --lm-surface-2 AND NOT --lm-purple-light, WHICH WAS MEASURED AND REJECTED.
+   The block's own state line is .8rem --lm-muted, and on --lm-purple-light that
+   is 4.12:1 - under the 4.5:1 small text needs. On --lm-surface-2 it is 4.45:1,
+   still a hair under, so the hover darkens the TEXT as well: 5.74:1. */
+.sp-plan:hover{background:var(--lm-surface-2);border-color:var(--lm-line-2)}
+.sp-plan:hover .sp-plan-state{color:var(--lm-ink-3)}
+.sp-plan:focus-visible{outline:2px solid var(--lm-purple);outline-offset:1px}
+/* The affordance, NOT a second target. --lm-muted and not --lm-muted-2: the
+   palette calls that one decoration, and at 2.97:1 on the hover it fell under
+   the 3:1 a glyph needs. */
+.sp-plan-go{color:var(--lm-muted);font-size:.8rem;transition:transform .1s,color .1s}
+.sp-plan:hover .sp-plan-go{color:var(--lm-purple);transform:translateX(2px)}
+.sp-plan-head{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;padding:.5rem .65rem}
+.sp-plan-title{font-weight:600;color:var(--lm-ink-2);font-size:.88rem}
+/* THE DATES, AS LABELLED FACTS RATHER THAN A SENTENCE.
+   It was one run-on line carrying three facts punctuated into prose, so reading
+   any one of them meant reading all of them. Its own row under the header, the
+   .sp-last-meta lesson: twelve words inline go ragged at one card width. */
+/* FOUR FIXED COLUMNS, so every plan on the screen lines up.
+   As a wrapping flex row each plan laid out to its own content and "Next" landed
+   at a different x on every card - four cards, four layouts, nothing to read
+   DOWN, which is the whole job of a list. A grid gives the same columns to a
+   plan that has not started, one in week 8, one that has ended and an ISP:
+     1 when it started   2 where it is now   3 when it resolves   4 the sentence
+   The last column takes the rest and wraps inside itself, so the dated three
+   stay put however long the step name is. */
+.sp-facts{flex:0 0 100%;display:grid;grid-template-columns:8.5rem 6.5rem 8.5rem minmax(0,1fr);
+  gap:.2rem 1.25rem;padding-top:.25rem}
+.sp-fact{display:flex;flex-direction:column;min-width:0}
+/* Two columns on a narrow card, and the sentence gets its own full-width row -
+   four 8rem columns do not fit a phone and squeezing them would wrap every date
+   onto two lines. */
+@media (max-width:767.98px){
+  .sp-facts{grid-template-columns:1fr 1fr}
+  .sp-fact:last-child{grid-column:1 / -1}
+}
+.sp-fact-label{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--lm-muted);font-weight:600;line-height:1.5}
+/* --lm-muted is 4.45:1 on the hover tint, a hair under what this size needs, so
+   the label darkens with the block exactly as the old state line did. */
+.sp-plan:hover .sp-fact-label{color:var(--lm-ink-3)}
+.sp-fact-value{font-size:.84rem;color:var(--lm-ink-2);line-height:1.35}
+/* Secondary detail inside a value - the week and the due date hang off the step
+   name and must not compete with it. */
+.sp-fact-dim{color:var(--lm-muted)}
+.sp-plan:hover .sp-fact-dim{color:var(--lm-ink-3)}
+.sp-fact-late{color:var(--lm-danger-text);font-weight:600}
+.sp-plan-closed{color:var(--lm-ink-3)}
+
+/* WHAT HAS ALREADY BEEN DONE, under the facts and inside the same block.
+   Everything above it is about what is MISSING, which is the screen's job and
+   stays first - but "4 of 16 done" is a count with no dates in it, and the dates
+   and notes somebody typed were only ever readable inside the modal.
+
+   THE LABEL COLUMN IS THE FACTS GRID'S OWN FIRST COLUMN, 8.5rem with the same
+   1.25rem gutter, so RECORDED and NOTES line up under COMMENCED and WEEK. A
+   second block laid out to its own widths would put back the four-cards-four-
+   layouts fault the facts grid exists to fix. */
+.sp-work{flex:0 0 100%;display:flex;flex-direction:column;gap:.3rem;
+  margin-top:.5rem;padding-top:.45rem;border-top:1px dashed var(--lm-line)}
+.sp-work-row{display:grid;grid-template-columns:8.5rem minmax(0,1fr);
+  gap:.15rem 1.25rem;align-items:baseline}
+/* The facts grid drops to two columns here and the sentence takes a row of its
+   own; a label column of 8.5rem beside a wrapping trail does not survive a phone
+   at all, so the label goes above its value. */
+@media (max-width:767.98px){
+  .sp-work-row{grid-template-columns:1fr}
+}
+/* A GRID AND NOT A WRAPPING ROW, which was the first cut and was measured to be
+   wrong for the same reason the facts above it are a grid. Packed as flex, four
+   items of four different lengths put the second row's dates at x=436 and x=740
+   with the first row's at x=408 and x=648 - nothing to read down, on the one
+   screen whose whole feature is its ordering. Two fixed columns hold every date
+   on one of two x positions however long the step names are.
+   ONE COLUMN ON A PHONE: two columns of a date plus a step name do not fit
+   beside a 8.5rem label, and the label is above its value at that width anyway. */
+.sp-work-items{display:grid;grid-template-columns:1fr;gap:.15rem 1.25rem;min-width:0}
+@media (min-width:768px){
+  .sp-work-items{grid-template-columns:1fr 1fr}
+}
+.sp-work-item{display:flex;align-items:baseline;gap:.3rem;min-width:0;font-size:.84rem}
+/* --lm-good, the same green the track's done cells use: one fact, one colour on
+   every screen. At .7rem it is a glyph and needs 3:1, which it clears on both
+   the block's own tint and its hover. */
+.sp-work-tick{font-size:.7rem;color:var(--lm-good);flex:0 0 auto}
+.sp-work-when{font-weight:600;color:var(--lm-ink-2);white-space:nowrap}
+/* The step name is secondary to its date and must not compete with it, and a
+   long one truncates rather than pushing the trail onto another line. The full
+   text, its week, who ticked it and its note are all in the item's tooltip. */
+.sp-work-what{color:var(--lm-muted);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0}
+/* --lm-muted is 4.45:1 on the hover tint, a hair under what this size needs, so
+   these darken with the block exactly as .sp-fact-label and .sp-fact-dim do. */
+.sp-plan:hover .sp-work-what{color:var(--lm-ink-3)}
+.sp-work-more{font-size:.78rem;color:var(--lm-muted);white-space:nowrap}
+/* The ones that fell off the end of the trail get their own line above it rather
+   than a cell of the grid, which would have put a two word marker where a dated
+   step belongs and pushed the trail out of its own columns. */
+.sp-work-items > .sp-work-more{grid-column:1 / -1}
+.sp-plan:hover .sp-work-more{color:var(--lm-ink-3)}
+/* THE TEAM'S OWN WORDS, given the quoted treatment .wish-note and .sp-last both
+   use for something a person typed rather than something the tool derived. */
+.sp-work-notes{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.sp-work-note{border-left:2px solid var(--lm-line-2);padding-left:.5rem;min-width:0}
+/* TWO LINES, CLAMPED. A note is 500 characters at most and one of them would
+   otherwise make a single card four rows taller than every other - the reading
+   down the list this block was laid out on the facts grid to protect. */
+.sp-work-note-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:.84rem;line-height:1.35;color:var(--lm-ink-2)}
+.sp-work-note-meta{display:block;font-size:.72rem;color:var(--lm-muted);margin-top:.1rem}
+.sp-plan:hover .sp-work-note-meta{color:var(--lm-ink-3)}
+
+/* THE PLAN'S SHAPE, filling the empty half of the card.
+   One cell per step, grouped into stages - the gaps ARE the stage boundaries.
+   Group widths are proportional to step count, so Weeks 6-9 (six steps) is six
+   times Week 10 (one); equal groups would draw a ten-week process as five equal
+   parts, which is a picture of something that does not exist.
+   Same vocabulary as the modal: green done, red overdue, purple where it is up
+   to. Decoration only - the badges beside it count the steps and the state line
+   names the week, and the element carries the count as its aria-label. */
+/* THE CELL IS A CONSTANT UNIT, so the track's LENGTH means something: a
+   sixteen step BSP draws a long track and a five step ISP a short one. Letting
+   the cells stretch to a fixed track width instead made the ISP's five cells as
+   wide as the BSP's sixteen were long, and the two read as different components
+   on the same card. The track shrinks on a narrow card rather than wrapping. */
+/* WIDE SCREENS ONLY, and that is the premise rather than a concession: this
+   exists to use horizontal space the card has going spare, and on a phone there
+   is none. Left in, it forced the PAGE 144px wider than the viewport at 390px.
+   Shrinking the cells instead is not available - flex-shrink collapses them to
+   their minimum even with 500px free beside them, measured. The badges and the
+   state line carry the same facts in words at every width. */
+.sp-track{display:none}
+@media (min-width:992px){
+  .sp-track{display:flex;align-items:center;gap:.85rem;flex:0 0 auto;margin-left:auto}
+}
+/* THE GAP BETWEEN GROUPS HAS TO BEAT THE GAP BETWEEN CELLS BY A LONG WAY, or the
+   stage boundaries do not read at all - measured at 6.4px against 2px and the
+   track looked like sixteen evenly spaced dashes, which threw away the one thing
+   it says that the badges beside it do not. 13.6px against 1px. */
+.sp-track-group{display:flex;gap:1px;min-width:0}
+/* flex-shrink MUST BE 0, and this was measured rather than reasoned about.
+   At `0 1 26px` every cell collapsed to its 3px minimum with 500px of free space
+   beside it - the track resolved to its minimum rather than its content. The
+   head row wraps, so a card too narrow for the track puts it on its own line
+   instead of squeezing or clipping it. */
+.sp-cell{flex:0 0 26px;height:10px;border-radius:2px;background:var(--lm-line-2)}
+.sp-cell-done{background:var(--lm-good)}
+.sp-cell-late{background:var(--lm-danger)}
+.sp-cell-next{background:var(--lm-purple)}
+/* A closed plan still shows its shape, but it is history: nothing on it is
+   overdue and nothing is next, so it should not read as live work. */
+.sp-track-closed{opacity:.45}
+
+/* ---- The plan modal: a wizard, one step to a page --------------------------
+
+   Three passes got here and the first two were the same mistake in smaller
+   sizes: showing the whole plan and trying to make it fit. Every size in here
+   had shrunk to .7-.85rem to do that, which reads as a page somebody zoomed out
+   of. ONE STEP PER PAGE is what buys ordinary type back. */
+
+/* The plan's own headline, above the strip - the only figures on screen that
+   are about the plan rather than about the page you are on. */
+.sp-head-line{display:flex;flex-wrap:wrap;align-items:center;gap:1rem;
+  font-size:.9rem;color:var(--lm-ink-3);padding:.1rem 0 .7rem}
+.sp-head-late{color:var(--lm-danger-text);font-weight:600}
+.sp-head-ok{color:var(--lm-good-text);font-weight:600}
+
+/* THE STAGE STRIP - the map across the top.
+   IT NAVIGATES, IT DOES NOT CONSTRAIN. Every stage is always reachable: a wizard
+   that made you finish stage N to reach N+1 would stop the team recording what
+   actually happened, because the room visits get done while a family meeting is
+   still being arranged and three of the policy's exits fire at any point. */
+.sp-stages{display:flex;align-items:stretch;margin:0 0 1.1rem;
+  border:1px solid var(--lm-line);border-radius:.4rem;overflow:hidden}
+.sp-stage{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;
+  gap:.25rem;padding:.55rem .3rem;border:0;background:var(--lm-surface);cursor:pointer;
+  transition:background-color .1s}
+.sp-stage + .sp-stage{border-left:1px solid var(--lm-line)}
+.sp-stage:hover{background:var(--lm-surface-2)}
+.sp-stage:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
+/* The MARKER carries the stage's state, the FILL carries where you are. Two
+   facts, so two channels - a done stage you happen to be on reads as both. */
+.sp-stage-mark{display:flex;align-items:center;justify-content:center;
+  width:1.5rem;height:1.5rem;border-radius:50%;font-size:.78rem;font-weight:700;
+  background:var(--lm-surface-2);color:var(--lm-muted)}
+.sp-stage-label{font-size:.78rem;color:var(--lm-muted);text-align:center;
+  line-height:1.2;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sp-stage-done .sp-stage-mark{background:var(--lm-good-wash);color:var(--lm-good-text)}
+.sp-stage-late .sp-stage-mark{background:var(--lm-danger);color:#fff}
+.sp-stage-here{background:var(--lm-purple-light)}
+.sp-stage-here:hover{background:var(--lm-purple-light)}
+.sp-stage-here .sp-stage-mark{background:var(--lm-purple);color:#fff}
+/* --lm-ink-2 on --lm-purple-light is 6.95:1; --lm-muted would be 4.12:1, under
+   what this size needs. Measured, the same as the card hover. */
+.sp-stage-here .sp-stage-label{color:var(--lm-ink-2);font-weight:600}
+/* NOT REACHED YET. Recedes rather than shouts - it is the normal state of most
+   of a plan for most of its life, not a fault. `disabled` on the button is what
+   actually stops the click; this is so the eye does not keep going back to it. */
+.sp-stage-shut{cursor:default;background:var(--lm-surface)}
+.sp-stage-shut:hover{background:var(--lm-surface)}
+.sp-stage-shut .sp-stage-mark{background:var(--lm-surface-2);color:var(--lm-faint)}
+.sp-stage-shut .sp-stage-label{color:var(--lm-faint)}
+
+/* WHY NEXT HAS STOPPED. A disabled button explains nothing and cannot carry a
+   tooltip in this app, so the reason goes on the page. */
+.sp-gate{margin-top:1rem;padding:.6rem .75rem;border-radius:.4rem;
+  background:var(--lm-surface-2);color:var(--lm-ink-3);font-size:.9rem}
+
+/* THE PAGE ITSELF, at the size the rest of the app uses. */
+.sp-page-where{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--lm-muted);font-weight:600;margin-bottom:.2rem}
+.sp-page-title{font-size:1.3rem;font-weight:600;color:var(--lm-ink);margin:0 0 .45rem;
+  line-height:1.3}
+.sp-page-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.55rem}
+.sp-page-when{font-size:.92rem;color:var(--lm-ink-3)}
+.sp-page-who{font-size:.95rem;color:var(--lm-ink-2);margin-bottom:.7rem}
+.sp-page-detail{font-size:.98rem;line-height:1.6;color:var(--lm-ink-2);margin:0 0 1.1rem}
+.sp-page-form{border-top:1px solid var(--lm-line);padding-top:.9rem}
+.sp-page-check{margin-bottom:.9rem;font-size:1rem}
+.sp-page-check .form-check-input{width:1.15rem;height:1.15rem;margin-top:.15rem}
+.sp-page-check .form-check-label{padding-left:.15rem}
+.sp-page-actions{margin-top:1rem}
+
+/* The policy week, and the one step whose date moves every other. */
+.sp-week{display:inline-block;font-size:.78rem;font-weight:600;padding:.1rem .4rem;
+  border-radius:.25rem;background:var(--lm-surface-2);color:var(--lm-ink-3)}
+.sp-week-anchor{background:var(--lm-warn-mid);color:var(--lm-warn-ink)}
+
+/* Back / where you are / Next, under the page rather than in the footer: the
+   footer is for what happens to the PLAN, this is for moving inside it. */
+.sp-page-nav{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;margin-top:1.1rem;padding-top:.8rem;border-top:1px solid var(--lm-line)}
+.sp-page-of{font-size:.88rem;color:var(--lm-muted)}
+
+/* ------------------------------------------------------------
+   PLACES TO FILL - the weekly report to management (#dash-fill).
+
+   A matrix, which no other table on this screen is: room tier down, centre (or
+   weekday) across, and a totals row AND column that have to read as the edge of
+   the grid rather than as two more data cells. .dgrid gives it the tabular
+   figures and the small-caps header; this adds only the edge.
+
+   NO ZEBRA AND NO VERTICAL RULES. The eye tracks a row across seven narrow
+   numeric columns perfectly well on baseline alone, and the one thing that must
+   stand out - the All row and column - cannot if every other line is already
+   drawn. The totals get weight and a single rule, nothing else.
+   ------------------------------------------------------------ */
+.dfill th:first-child { white-space: nowrap; }
+.dfill thead th { vertical-align: bottom; }
+.dfill td.dfill-all, .dfill th.dfill-all { font-weight: 600; }
+/* The column rule sits on the left EDGE of the All column, so it separates the
+   totals from the data rather than boxing them in. */
+.dfill td.dfill-all, .dfill thead th.dfill-all { border-left: 1px solid var(--bs-border-color); }
+.dfill tfoot tr.dfill-all th, .dfill tfoot tr.dfill-all td {
+  font-weight: 600;
+  border-top: 1px solid var(--bs-border-color);
+}
+/* A centre name in the header is a link, and at .75rem uppercase the default
+   underline-on-hover is most of the cell. Kept as a colour change only, which is
+   what .ov-centre-link already does everywhere else. */
+.dfill thead th a { text-decoration: none; }
+
+/* WHAT'S CHANGING THIS FORTNIGHT (#dash-week) sits in a FULL-WIDTH card, which the
+   declines list it borrows .dash-free from never does.
+
+   .dash-free shrinks to its content on purpose - stretched, the slack lands
+   between Room and Days and a strip of weekday boxes 300px from the room it
+   belongs to stops reading as one row. That decision stands and this must not
+   undo it. But at full width the table stopped 175px short of the card edge, so
+   every row RULE stopped there too and the card read as broken rather than as
+   deliberately narrow ("squished over on the left", Broc, 15 Sep 2026).
+
+   So the table spans the card and the LAST column absorbs every pixel of the
+   slack: Child, Centre, Room and Days keep their content widths and their
+   order, the weekday strip stays hard against the room it describes, and the
+   rules reach the edge. The slack ends up after the change label, which is the
+   one place on the row where empty space says nothing. */
+/* NO MEDIA QUERY, and that was checked rather than assumed. These rules trade
+   wrapping for width, which looked like a desktop-only trade, so they were tried
+   inside a min-width:992px guard first - and the phone was WORSE for it. Five
+   columns overflow 390px either way and .table-scroll carries it either way, so
+   the only thing wrapping buys is height: every row became three and four lines
+   ("Little Angels -> Radiant Rainbows" over four) and the table still had to be
+   swiped sideways. One compact line per row that you swipe beats four lines that
+   you also swipe. */
+.dweek { width: 100%; }
+/* The other four columns must hold their CONTENT width, or giving the last one
+   100% starves them: tried without this and Child, Centre and Room all wrapped
+   onto two and three lines, which is worse than the gap it was fixing. Auto
+   layout gives a percentage column everything it asks for and squeezes the rest
+   to their minimum, so the rest have to refuse to shrink. */
+.dweek th, .dweek td { white-space: nowrap; padding-right: .9rem; }
+/* The tighter gutter the group declines card already uses. .dash-free's 1.75rem
+   was sized for a table that shrinks to its content in a full-width card; five
+   columns of it cost 140px, which is most of what the narrow half of a 7/5 row
+   has spare. Same override, same reason, one row up the page. */
+.dweek th:last-child, .dweek td:last-child { width: 100%; padding-right: .5rem; }
+/* Kidsoft's exit reason under "Ending care". The one line in this table allowed
+   to wrap: it sits in the column that takes the spare width, and the longest
+   value Kidsoft holds ("Change of mind before commencing care") should break
+   rather than push the table into a sideways scroll. */
+.dweek-reason { white-space: normal; }
+
+/* The changes card carries FIVE figures where the re-enrolment card carries
+   four, and in the narrow half of a 7/5 row .stat-strip's 7rem minimum fits only
+   four of them - dropping "Place-days" onto a line of its own under a wide gap,
+   which is the exact orphan the grid was introduced to stop. The labels here are
+   shorter ("Starting", "Day changes") than the ones 7rem was measured against,
+   so the minimum comes down rather than the figure count: five fit across ~655px
+   and auto-fit still collapses them to three on a phone. */
+#dash-week .stat-strip { grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr)); }
+
+/* The Filled column on Places to fill. Separated from the counts by the same
+   single rule the All column uses, because it is a different KIND of figure -
+   everything to its left is a count of place-days and this is a ratio. Without
+   it the eye reads "46  92.7%" as two numbers in one series. */
+.dfill td.dfill-pct, .dfill thead th.dfill-pct { border-left: 1px solid var(--bs-border-color); }
+.dfill tfoot tr.dfill-all td.dfill-pct { font-weight: 600; }
+
+/* "5/394" on the edges of the matrix: how many to fill, out of how many spots
+   there are (16 Sep 2026). The denominator is dropped back so the figure the
+   card is ABOUT still reads first, and it is NOT bold even inside the All row --
+   a total's weight belongs to the total, not to the size of the thing it came
+   out of. Identical treatment to .grid-free-cap on the Placement board, which
+   carries the same fact in the same shape. */
+.dfill-cap { opacity: .62; font-weight: 400; }
+/* The Filled % under each All-row margin (6 Nov 2026). Second line, normal
+   weight and the muted colour, so the count above it still reads first. */
+.dfill-sub { font-size: .8em; font-weight: 400; color: var(--bs-secondary-color); }
+
+/* ------------------------------------------------------------
+   MARKETING - places going spare that nobody is waiting for.
+
+   A RANKED TABLE, not a matrix, on the group view: the rows are centre x age
+   group in order of the gap, and the weekday cut lives in a figure row under
+   it. On one centre it IS a matrix - age group down, weekday across - and then
+   it borrows the same edge treatment .dfill uses, because it is the same kind of
+   table carrying the same kind of total.
+
+   NOTE THE ELEMENT ON EVERY RULE THAT TOUCHES A CELL. Bootstrap's
+   `.table>:not(caption)>*>*` is (0,1,1) and sets background-color, color AND
+   box-shadow on every td and th, so a bare class is (0,1,0) and silently loses --
+   which is how the whole placement heat map once rendered as a plain white
+   table. `td.mkt-gap` reaches (0,1,1) and then wins on source order.
+
+   NO ZEBRA AND NO VERTICAL RULES, the same call .dfill made: the one thing that
+   has to stand out is the gap column, and it cannot if every other line is
+   already drawn.
+   ------------------------------------------------------------ */
+.mkt-table thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--bs-secondary-color);font-weight:600;vertical-align:bottom}
+.mkt-table td,.mkt-table tbody th{font-size:.9375rem}
+.mkt-table td.mkt-fig,.mkt-table th.mkt-fig{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* The age group cell carries three lines - the tier, its licensed band and the
+   rooms behind it - because the campaign is a tier and the place is a room, and
+   somebody has to know which door the child comes in. */
+.mkt-table th.mkt-tier{font-weight:600;min-width:13rem}
+.mkt-band,.mkt-rooms{display:block;font-weight:400;font-size:.8125rem;line-height:1.3}
+.mkt-band{color:var(--lm-muted)}
+.mkt-rooms{color:var(--lm-muted-2)}
+.mkt-room-link{color:var(--lm-muted);text-decoration:none}
+.mkt-room-link:hover{color:var(--lm-pink)}
+/* Where a tier is one room of the same name the HEADING is the link, so it has
+   to keep looking like a heading: the row's own ink, no underline, and the brand
+   hover every other link in the app has. A bare class would lose the colour to
+   app.css's own `a{color:var(--lm-purple)}` at (0,1,1), so the element is named. */
+a.mkt-tier-link{color:var(--lm-ink);text-decoration:none}
+a.mkt-tier-link:hover{color:var(--lm-pink)}
+
+/* THE COLUMN THE TABLE IS SORTED ON. Weight and a single rule on its left edge,
+   which is exactly what .dfill gives its All column: it separates the ranked
+   figure from the two it was derived from rather than boxing it in.
+
+   NOT COLOURED. Every row here has a gap or a dash, so an amber column would be
+   amber on every row and say nothing; the tile above carries the status colour
+   once, where it means something. The one colour on the row is .mkt-none, which
+   marks the state this screen exists for. */
+.mkt-table td.mkt-gap,.mkt-table thead th.mkt-gap{font-weight:600;
+  border-left:1px solid var(--bs-border-color)}
+/* THE HEADER NEEDS ITS OWN WIDTH. "Nobody waiting for" is 18 uppercase
+   letterspaced characters; in a column sized to its three-digit figures it
+   wrapped to two lines and the second line sat beside the NEXT header, so the
+   two read as one sentence ("...for which days"). Stated explicitly because
+   .75rem small caps is not a width anything else on the row implies. */
+.mkt-table thead th.mkt-gap{width:8rem;white-space:nowrap}
+.mkt-table tfoot tr.mkt-all th,.mkt-table tfoot tr.mkt-all td{font-weight:600;
+  border-top:1px solid var(--bs-border-color)}
+
+/* "5/394" - how many are free out of how many spots there are. Dropped back so
+   the figure the row is ABOUT still reads first, and never bold even in the
+   totals row: a total's weight belongs to the total, not to the size of the
+   thing it came out of. Identical treatment to .dfill-cap and .grid-free-cap,
+   which carry the same fact in the same shape on two other screens. */
+.mkt-cap{opacity:.62;font-weight:400}
+
+/* NOBODY IS WAITING - the state the screen was asked for, so it says the word
+   rather than printing a 0 that reads as a measurement nobody made.
+
+   --lm-warn-deep and not --lm-warn-text: this is small text ON WHITE, where
+   deep is 5.08:1 and the lighter step is 2.2:1 - "label relief", which is what
+   a colour is when it sits behind a label rather than being one. See the
+   warning-amber block above. */
+.mkt-none{color:var(--lm-warn-deep);font-weight:600}
+
+/* The strip of five day boxes needs its own width or the last column collapses
+   it: five wide boxes are 10.9rem, the figure measured when .dstrip-wide was
+   built, and nothing here may change that geometry. */
+.mkt-table td.mkt-days,.mkt-table th.mkt-days{width:11.5rem}
+
+/* WHERE THE GAP FALLS - the three cuts that run ACROSS the group ranking, as
+   three lines under it.
+
+   THE SIZE IS THE WHOLE POINT. These were three window.statStrip() blocks in a
+   card of their own ABOVE the table for one day: 17 figures at the same weight
+   as the four tiles, in three auto-fit grids of 7, 5 and 5 columns that lined up
+   with nothing, taking 445px of a 800px window. The ranking - the report - was
+   pushed entirely below the fold, so the screen opened on zero rows of "Where to
+   advertise" where it used to open on five. A cut is a footnote to the ranking,
+   not a second report in front of it.
+
+   So: a flex line per cut, a fixed label gutter so the three read as one block,
+   and the ranking keeps the fold. Wrapping is the flex container's job - at 1280
+   the seven centres fit on one line and at 390 they wrap under the label. */
+.mkt-cuts{margin-top:1.25rem;padding-top:.875rem;
+  border-top:1px solid var(--bs-border-color)}
+.mkt-cut{display:flex;flex-wrap:wrap;align-items:baseline;gap:.375rem 1.125rem;
+  margin-bottom:.5rem}
+.mkt-cut:last-child{margin-bottom:0}
+/* The same small caps the table heads use, in a gutter wide enough for "By age
+   group" on one line - without it the three labels sit at three different
+   indents and the block stops reading as one thing. */
+.mkt-cut-k{flex:0 0 7rem;font-size:.75rem;text-transform:uppercase;
+  letter-spacing:.02em;color:var(--bs-secondary-color);font-weight:600}
+.mkt-cut-v{font-size:.875rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mkt-cut-v b{font-weight:600}
+/* A ZERO IS DROPPED BACK, NOT DASHED. In a distribution the zeros are half the
+   finding - 2026 reads 0, 0, 0, 10, 28 from the youngest tier to the oldest, and
+   that shape IS the answer - so they stay as figures and lose their ink instead,
+   which is what makes the one big number visible at a glance. */
+.mkt-cut-z{color:var(--lm-muted-2)}
+/* ON A PHONE THE LABEL TAKES ITS OWN LINE. With a fixed gutter the first figure
+   sat up beside the label and every one after it wrapped to the left margin, so
+   each cut read as one stray figure and then a paragraph. Full width puts the
+   label above its own figures and they all start in the same place. */
+@media (max-width:767.98px){.mkt-cut-k{flex:0 0 100%}}
+
+/* ===== SUPPORT PLANS REPORT, ON SCREEN AND ON PAPER ========================
+   support-plans-report.php. One child, or every child the Support plans tab
+   shows: a summary page, then each child on a page of their own with every
+   step, held day and contact laid out flat. See support-plans.md.
+
+   THE SHEET. Bordered and white on screen so it reads as the paper it becomes;
+   printed, the border and padding go and the page margins take over.
+
+   THE COLOURS ARE INFORMATION HERE - red is a step overdue, green a day
+   attended, amber a day held - and a browser drops every background when it
+   prints unless told otherwise, which would leave a red badge as white text on
+   white paper. print-color-adjust is inherited, so the sheet says it once. Every
+   coloured mark on the sheet also carries its word, for a black and white
+   printer. */
+.spr-sheet{background:#fff;border:1px solid var(--lm-line);border-radius:.5rem;
+  padding:1.75rem 2rem;max-width:62rem;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.spr-head{display:flex;align-items:center;gap:1.25rem;padding-bottom:1rem;
+  margin-bottom:1.25rem;border-bottom:2px solid var(--lm-purple)}
+.spr-logo svg{height:3.25rem;width:auto;display:block}
+.spr-head-text{flex:1 1 auto;min-width:0}
+.spr-kicker{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;
+  font-weight:700;color:var(--lm-danger-text)}
+.spr-title{font-size:1.4rem;font-weight:600;line-height:1.2;color:var(--lm-ink)}
+.spr-scope{color:var(--lm-ink-2)}
+.spr-printed{font-size:.8rem;color:var(--lm-muted);text-align:right}
+/* A phone: the "as at" line drops under the title rather than squeezing it into
+   a column one word wide. Paper is ~718px, so this never reaches a print. */
+@media (max-width:575.98px){
+  .spr-sheet{padding:1rem}
+  .spr-head{flex-wrap:wrap;gap:.75rem}
+  .spr-logo svg{height:2.5rem}
+  .spr-printed{flex:0 0 100%;text-align:left}
+}
+
+.spr-strong{font-weight:600;color:var(--lm-ink)}
+.spr-sub{font-size:.78rem;color:var(--lm-muted)}
+.spr-h{font-size:1rem;font-weight:600;margin:0;color:var(--lm-ink)}
+.spr-line + .spr-line{margin-top:.5rem}
+
+/* One child. On screen a rule between them; on paper a page each (below). */
+.spr-child{margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--lm-line)}
+.spr-child:first-child{margin-top:0;padding-top:0;border-top:0}
+.spr-child-head{display:flex;justify-content:space-between;align-items:flex-start;
+  gap:1rem;margin-bottom:.75rem}
+.spr-name{font-size:1.3rem;font-weight:600;margin:0}
+
+/* THE WEEK, five boxes with a word in each. The day strip's own fills and edges
+   (.dbox.db-has, .dbox.db-held) so attends and held keep one colour across the
+   app; the word is what survives a black and white printer. */
+.spr-days{border-collapse:separate;border-spacing:.25rem 0;margin:0 -.25rem .5rem;
+  font-size:.8rem}
+.spr-days th{font-weight:600;color:var(--lm-ink-2);text-align:center;
+  padding:0 0 .15rem;width:6.5rem}
+.spr-day{text-align:center;padding:.3rem .25rem;border-radius:.25rem}
+.spr-day-on{background:var(--lm-good-mid);color:var(--lm-good-text);font-weight:600;
+  box-shadow:inset 0 0 0 1.5px var(--lm-good)}
+.spr-day-held{background:var(--lm-warn-mid);color:var(--lm-warn-ink);font-weight:600;
+  box-shadow:inset 0 0 0 1.5px var(--lm-warn-deep)}
+.spr-day-off{background:var(--lm-surface-2);color:var(--lm-muted)}
+.spr-held{list-style:none;padding:0;margin:0 0 .75rem;font-size:.85rem;color:var(--lm-ink-2)}
+
+.spr-plan{margin-top:1.25rem}
+.spr-plan-head{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.35rem}
+.spr-plan .sp-facts{margin-bottom:.6rem}
+
+/* The tables. Named with the element where they style a cell, because
+   Bootstrap's .table>:not(caption)>*>* is (0,1,1) and a bare class loses
+   (ui-conventions.md, trap 1). */
+.spr-table{font-size:.82rem;margin-bottom:0}
+.spr-table th{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--lm-muted);font-weight:600}
+.spr-table td{vertical-align:top}
+.spr-table td.spr-n,.spr-table th.spr-n{width:2rem;color:var(--lm-muted)}
+.spr-table td.spr-date{white-space:nowrap}
+.spr-table td.spr-text{color:var(--lm-ink-2)}
+.spr-table tr.spr-stage th{background:var(--lm-surface-2);color:var(--lm-ink-2);
+  font-size:.78rem;text-transform:none;letter-spacing:0;padding-top:.35rem}
+.spr-tick{color:var(--lm-good)}
+/* The dated columns hold their width whatever the text beside them does, so
+   every plan's Due and Done line up down the page. */
+.spr-table th.spr-w-date{width:8rem}
+.spr-table th.spr-w-by{width:6rem}
+/* A step's note on the line under it: no rule between the two, so they read as
+   one step. */
+.spr-table tr.spr-has-note td{border-bottom-width:0}
+.spr-table tr.spr-note-row td{padding-top:0}
+
+/* ON PAPER. Scoped to the report with :has(), because every other screen's
+   Ctrl+P is not something anybody asked to change. */
+@media print{
+  body:has(.spr-sheet){background:#fff}
+  body:has(.spr-sheet) .app-sidebar,
+  body:has(.spr-sheet) .centre-bar,
+  body:has(.spr-sheet) .toast-stack{display:none!important}
+  body:has(.spr-sheet) .app-main{padding:0!important}
+  .spr-sheet{border:0;border-radius:0;padding:0;max-width:none}
+  /* A4 is about 718px wide at the default margins, under the 768px at which
+     the card's facts fold to two columns. Four fit with room to spare. */
+  .spr-sheet .sp-facts{grid-template-columns:8.5rem 6.5rem 8.5rem minmax(0,1fr)}
+  .spr-sheet .sp-fact:last-child{grid-column:auto}
+  /* EACH CHILD ON A PAGE OF THEIR OWN, so one child's pages can be pulled from
+     the pack and filed, or handed to the Area Manager, without anybody else's. */
+  .spr-child{break-before:page;margin-top:0;padding-top:0;border-top:0}
+  .spr-child:first-child{break-before:auto}
+  .spr-table tr,.spr-steps tbody,.spr-days,.sp-facts,.spr-child-head{break-inside:avoid}
+  .spr-plan-head,.spr-h,.spr-table tr.spr-stage{break-after:avoid}
+}
+
+/* ===== ONE ENROLLED CHILD (6 Nov 2026) ======================================
+   _incl/child-modal.php + static/js/child-modal.js. It borrows the cell panel's
+   card grammar (.cp-h, .cp-card, .cp-strip, .cp-contact) on purpose: the same
+   family reads the same way in the panel and in the dialog it opens. Only the
+   two shapes the panel has no use for are new - a row per YEAR, and a family
+   column. */
+.ch-sub{font-size:.8rem;color:var(--lm-muted);margin-top:.15rem}
+.ch-sub .badge{font-size:.7rem}
+#ch-modal .modal-header .min-w-0{min-width:0}
+/* The first heading in each column sits on the body's own padding rather than
+   a second margin above it, so the two columns start level. */
+#ch-modal .row > [class*="col-"] > .cp-h:first-child{margin-top:0}
+
+/* A YEAR: the number in a fixed gutter, its rooms and notes beside it. */
+.ch-year{display:flex;gap:.75rem;padding:.45rem 0;border-bottom:1px solid var(--lm-line)}
+.ch-year:last-child{border-bottom:0}
+.ch-year-n{flex:0 0 2.6rem;font-weight:600;color:var(--lm-ink-2);font-variant-numeric:tabular-nums;
+  padding-top:.05rem}
+.ch-year-body{min-width:0;flex:1}
+.ch-room{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .5rem;margin-bottom:.15rem}
+.ch-room-name{display:inline-flex;align-items:center;gap:.3rem;font-size:.86rem;color:var(--lm-ink)}
+.ch-none{font-size:.84rem;color:var(--lm-muted)}
+
+.ch-card{margin-bottom:.4rem}
+.ch-line{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem .5rem}
+.ch-line .badge{font-weight:500}
+
+/* THE FAMILY COLUMN: a parent per line, a brother or sister per block. */
+.ch-parent{padding:.35rem 0;border-bottom:1px solid var(--lm-line)}
+.ch-parent:last-child{border-bottom:0}
+.ch-parent .cp-contact{margin-top:.2rem}
+.ch-sib{padding:.4rem 0;border-bottom:1px solid var(--lm-line)}
+.ch-sib:last-child{border-bottom:0}
+
+/* OURS, set apart from everything read above it. */
+.ch-ours{margin-top:1.1rem;padding-top:.2rem;border-top:1px solid var(--lm-line)}
+/* A name that opens something is the app's link purple, whether it is a button
+   (another dialog) or an anchor (another screen). The element is named in the
+   selector because a:hover is (0,1,1) - see the CSS traps in ui-conventions.md. */
+#ch-modal a.cp-name{color:var(--lm-purple);text-decoration:none}
+#ch-modal a.cp-name:hover{color:var(--lm-pink);text-decoration:underline}
+.ch-hold{margin:0 0 .2rem;color:var(--lm-warn-ink)}
+/* A second line on one child - their application under their room - reads as
+   detail, so it takes the detail size and keeps the link colour. */
+#ch-modal .cp-name.ch-small{font-size:.8rem;font-weight:500}
+
+/* AN ENROLLED CHILD'S NAME IN THE SEARCH PALETTE OPENS THEIR DIALOG (6 Nov 2026).
+   A <button> - it opens a dialog and navigates nowhere - so the chrome comes off
+   and the name's own look stays: .sr-name already sets the weight, size and
+   purple. Underline on hover only, like every other name that opens something. */
+button.sr-child{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left}
+button.sr-child:hover{color:var(--lm-pink);text-decoration:underline}
+/* The same child enrolled at a second centre: a smaller door beside the name. */
+button.sr-child.sr-child-also{font-size:.78rem;font-weight:500;margin-left:.5rem;color:var(--lm-purple)}
+
+/* A CHILD'S NAME ANYWHERE THAT OPENS THEIR DIALOG - window.childName() in
+   app.js (6 Nov 2026). An <a role="button"> so it wraps inside a sentence (see
+   childName()); the text keeps whatever weight and size its place gives it - a
+   table's bold <th>, a queue reason badge, a card heading. THE ELEMENT IS NAMED
+   in both rules: a:hover is (0,1,1) and a bare class would lose to it. */
+a.ch-name{color:var(--lm-purple);text-decoration:none}
+a.ch-name:hover{color:var(--lm-pink);text-decoration:underline}
+/* A Dashboard row's child, as a way to their In progress item. Underline on
+   hover only, like every other name that opens something. */
+a.dash-item{text-decoration:none}
+a.dash-item:hover{text-decoration:underline}
+/* Support plans: the child's name now opens their dialog (a.ch-name), and keeps
+   the card heading's own hover rather than the generic one. */
+a.ch-name.sp-name:hover{color:var(--lm-purple-dk)}
+/* The room under it still goes to the Placement cell, quietly. */
+a.sp-room{color:inherit;text-decoration:none}
+a.sp-room:hover{color:var(--lm-pink);text-decoration:underline}

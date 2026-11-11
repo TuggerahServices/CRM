@@ -1,0 +1,10 @@
+# Secrets live on the server only and are never committed.
+# See "Secrets" in CLAUDE.md for where each one is kept.
+/_incl/db-config.php
+/_incl/kidsoft-config.php
+/_incl/entra/
+*.key
+*.pem
+
+# Claude Code's per-machine permissions.
+/.claude/settings.local.json
