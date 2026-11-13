@@ -91,10 +91,10 @@
    * THE WEEKDAY THIS ROW IS WORST ON, or 0 when it has no gap at all.
    *
    * It is what the deep link carries: the placement board needs BOTH `room` and
-   * `wd` to open a cell (board.js builds `deepCell` from the pair and does
-   * nothing with a room on its own), so a link with only the room lands on the
-   * grid and leaves the reader to find the cell again. Verified by clicking one:
-   * /placement?centre=1&year=2027&room=3 opened the Kanwal board with no panel.
+   * `wd` to open a cell (board.js builds `deepCell` from the pair). A link with
+   * only the room opened nothing at all until 13 Nov 2026 - verified by
+   * clicking one, /placement?centre=1&year=2027&room=3 opened the Kanwal board
+   * with no panel - and now opens that room's sheet, every child all week.
    */
   function worstDay(r) {
     var wd = 0, best = 0;

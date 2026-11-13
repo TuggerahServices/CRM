@@ -336,7 +336,7 @@
      travel the full width of the card to act on what they had read.
 
      role/tabindex/keydown is the pattern this app already uses for a clickable
-     thing that is not an <a> - see .place-chip and .rs-open in board.js. The
+     thing that is not an <a> - see .place-chip and .rv-dh in board.js. The
      chevron is an affordance, not a second target: there is nothing else
      interactive inside the block, which is what makes the whole of it safe to
      click. */
@@ -1166,7 +1166,7 @@
     if (!keepScroll) $('#sp-plan-modal .modal-body').scrollTop(0);
   }
 
-  // Click or keyboard, the same guard board.js uses for .place-chip and .rs-open.
+  // Click or keyboard, the same guard board.js uses for .place-chip and .rv-dh.
   $('#sp-list').on('click keydown', '.sp-plan', function (e) {
     if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
     e.preventDefault();
@@ -1504,13 +1504,63 @@
     var id = $(this).data('id');
     $('#sp-comm-subtitle').text($(this).data('name'));
     $('#sp-comm-form [name=placement_id]').val(id);
-    $('#sp-comm-form [name=summary]').val('');
-    $('#sp-comm-form [name=body]').val('');
-    $('#sp-comm-form [name=occurred_at]').val('');
+    commFormReset();
     commModal = commModal || new bootstrap.Modal('#sp-comm-modal');
     commModal.show();
     loadComms(id);
   });
+
+  // EDITING A NOTE (12 Nov 2026) puts it back into the form above, which saves
+  // it in place of logging a new one. Cancel, a save, or opening another
+  // child's history puts the form back to logging, so the next note typed is
+  // never filed over an old one.
+  var commById = {};
+
+  function commFormReset() {
+    var $f = $('#sp-comm-form');
+    $f.find('[name=id], [name=summary], [name=body], [name=occurred_at]').val('');
+    $f.find('[name=direction]').val('outbound');
+    $f.find('[name=channel]').val('phone');
+    $('#sp-comm-save').text('Log contact');
+    $('#sp-comm-cancel').addClass('d-none');
+    $('#sp-comm-list .comm-entry').removeClass('comm-editing');
+  }
+
+  // The pencil: only on a note that never goes to Kidsoft, where a comment
+  // cannot be changed. /api/comms `update` refuses anything else.
+  function commEditBtn(c) {
+    if (!c || !c.id || String(c.local_only) !== '1' || c.kidsoft_pushed_at) return '';
+    return ' <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline sp-comm-edit"' +
+      ' data-id="' + esc(c.id) + '" title="Edit this note" aria-label="Edit this note">' +
+      '<i class="fa-solid fa-pen"></i></button>';
+  }
+
+  // Who changed it and when, on the entry itself, so an edit is never quiet.
+  // The words it replaced are in the audit log.
+  function commEdited(c) {
+    if (!c.edited_at) return '';
+    return ' &middot; edited by ' + esc(staffName(c.edited_by)) + ' ' + fmtDateTime(c.edited_at);
+  }
+
+  $('#sp-comm-list').on('click', '.sp-comm-edit', function () {
+    var c = commById[$(this).attr('data-id')];
+    if (!c) return;
+    var $f = $('#sp-comm-form');
+    $f.find('[name=id]').val(c.id);
+    $f.find('[name=direction]').val(c.direction);
+    $f.find('[name=channel]').val(c.channel);
+    $f.find('[name=occurred_at]').val(String(c.occurred_at || '').substr(0, 10));
+    $f.find('[name=summary]').val(c.summary);
+    $f.find('[name=body]').val(c.body || '');
+    $('#sp-comm-save').text('Save changes');
+    $('#sp-comm-cancel').removeClass('d-none');
+    $('#sp-comm-list .comm-entry').removeClass('comm-editing');
+    $(this).closest('.comm-entry').addClass('comm-editing');
+    $('#sp-comm-modal .modal-body').scrollTop(0);
+    $f.find('[name=summary]').trigger('focus');
+  });
+
+  $('#sp-comm-cancel').on('click', commFormReset);
 
 
   function loadComms(placementId) {
@@ -1533,13 +1583,16 @@
           'A Kidsoft comment cannot be edited or deleted once it is written, so ' +
           'support plan notes are kept where they can be corrected.');
 
+        commById = {};
         if (!res.entries.length) {
           $('#sp-comm-list').html('<div class="text-muted small">No contact logged yet.</div>');
         } else {
           $('#sp-comm-list').html(res.entries.map(function (c) {
+            commById[c.id] = c;
             var dirCls = c.direction === 'inbound' ? 'border-info'
                        : (c.direction === 'internal' ? 'border-secondary' : 'border-primary');
-            return '<div class="comm-entry ' + dirCls + '">' +
+            return '<div class="comm-entry ' + dirCls +
+                (String(c.id) === $('#sp-comm-form [name=id]').val() ? ' comm-editing' : '') + '">' +
               '<div class="d-flex justify-content-between align-items-start gap-2">' +
                 '<div class="fw-semibold"><i class="' +
                   channelIcon(c.channel) + ' me-2 text-muted"></i>' +
@@ -1548,7 +1601,8 @@
               '</div>' +
               (c.body ? '<div class="small mt-1">' + esc(c.body).replace(/\n/g, '<br>') + '</div>' : '') +
               '<div class="small text-muted mt-1">' + esc(res.directions[c.direction] || c.direction) +
-                ' &middot; ' + esc(c.staff_email) + copyTag(c, true) + commDeleteBtn(c) + '</div>' +
+                ' &middot; ' + esc(c.staff_email) + commEdited(c) + copyTag(c, true) +
+                commEditBtn(c) + commDeleteBtn(c) + '</div>' +
             '</div>';
           }).join(''));
         }
@@ -1583,14 +1637,15 @@
   $('#sp-comm-form').on('submit', function (e) {
     e.preventDefault();
     var id = $('#sp-comm-form [name=placement_id]').val();
+    var editing = !!$('#sp-comm-form [name=id]').val();
     var $btn = $(this).find('[type=submit]').prop('disabled', true);
-    $.post('/api/comms', $(this).serialize() + '&action=add')
+    $.post('/api/comms', $(this).serialize() + '&action=' + (editing ? 'update' : 'add'))
       .done(function (res) {
         if (!res.ok) { toast(res.error, 'danger'); return; }
         if (res.warning) toast(res.warning, 'warning');
-        else toast('Logged.');
-        $('#sp-comm-form [name=summary]').val('');
-        $('#sp-comm-form [name=body]').val('');
+        else toast(editing ? (res.unchanged ? 'Nothing changed.' : 'Saved.') : 'Logged.');
+        if (editing) commFormReset();
+        else $('#sp-comm-form').find('[name=summary], [name=body]').val('');
         loadComms(id);
         // The card's "days since contact" is now wrong, and it is part of the
         // ordering of the list.
@@ -1838,7 +1893,9 @@
             '<div class="spr-sub">' + esc(res.directions[c.direction] || c.direction) + '</div></td>' +
           '<td class="spr-text"><div class="spr-strong">' + esc(c.summary) + '</div>' +
             (c.body ? '<div>' + esc(c.body).replace(/\n/g, '<br>') + '</div>' : '') + '</td>' +
-          '<td>' + esc(staffName(c.by)) + '</td>' +
+          '<td>' + esc(staffName(c.by)) +
+            (c.edited ? '<div class="spr-sub">edited by ' + esc(staffName(c.edited_by)) +
+              ' ' + esc(c.edited) + '</div>' : '') + '</td>' +
         '</tr>';
       }).join('') + '</tbody></table>';
   }

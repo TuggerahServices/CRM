@@ -197,6 +197,7 @@ layout_header('Support plans', $user, 'support', [
         <form id="sp-comm-form" class="border rounded p-3 mb-3 bg-body-tertiary">
           <input type="hidden" name="placement_id">
           <input type="hidden" name="local_only" value="1">
+          <input type="hidden" name="id">
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
               <label class="form-label small mb-1">Direction</label>
@@ -220,8 +221,9 @@ layout_header('Support plans', $user, 'support', [
               <label class="form-label small mb-1">When</label>
               <input type="date" class="form-control form-control-sm" name="occurred_at">
             </div>
-            <div class="col-md-3">
-              <button type="submit" class="btn btn-primary btn-sm w-100">Log contact</button>
+            <div class="col-md-3 d-flex gap-1">
+              <button type="submit" class="btn btn-primary btn-sm flex-fill" id="sp-comm-save">Log contact</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="sp-comm-cancel">Cancel</button>
             </div>
             <div class="col-12">
               <label class="form-label small mb-1">Summary</label>

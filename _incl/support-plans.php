@@ -399,6 +399,9 @@ function support_plans_history(array $rows): array {
                 'summary'   => $c['summary'],
                 'body'      => $c['body'],
                 'by'        => $c['staff_email'],
+                // Edited since (12 Nov 2026) - on paper as on the screen.
+                'edited_by' => $c['edited_by'],
+                'edited'    => $c['edited_at'] ? syd_date($c['edited_at']) : null,
             ];
         }
     }

@@ -647,12 +647,7 @@
       // The next question in a chain (Do Not Enrol, then "Same child?") can be
       // up before this one has finished fading. It has the floor and the focus.
       if ($under.is('.modal-ask')) return;
-      if ($under.length) {
-        $('body').addClass('modal-open');
-        // Bootstrap 5.3.8's own trap, which is private. The version is pinned.
-        var under = bootstrap.Modal.getInstance($under[0]);
-        if (under && under._focustrap) { under._focustrap.deactivate(); under._focustrap.activate(); }
-      }
+      rearmUnder($under);
       if (prev && $.contains(document.documentElement, prev) &&
           (!$under.length || $.contains($under[0], prev))) $(prev).trigger('focus');
     });
@@ -661,6 +656,47 @@
     // Added by show() itself, synchronously, as the body's last backdrop.
     $('.modal-backdrop').last().addClass('modal-ask-backdrop');
     return d.promise();
+  };
+
+  /**
+   * The dialog left showing once one stacked over it has gone gets back what
+   * Bootstrap took: the page's scroll lock (the closing dialog removes
+   * .modal-open from the body) and its focus trap, which Bootstrap hands to the
+   * newest dialog and never returns.
+   */
+  function rearmUnder($under) {
+    if (!$under.length) return;
+    $('body').addClass('modal-open');
+    // Bootstrap 5.3.8's own trap, which is private. The version is pinned.
+    var under = bootstrap.Modal.getInstance($under[0]);
+    if (under && under._focustrap) { under._focustrap.deactivate(); under._focustrap.activate(); }
+  }
+
+  /**
+   * OPEN AN EXISTING DIALOG ON TOP OF WHATEVER DIALOG IS ALREADY UP, the way
+   * confirmModal() opens its question - for a dialog that is one question about
+   * something on the one underneath, where replacing it would lose the reader's
+   * place. The Placement room sheet is the case: clicking an empty day asks
+   * "waiting for it, or held for them?" and the answer lands in that box.
+   *
+   * With nothing open it is a plain show(). Otherwise the dialog takes
+   * .modal-over (the .modal-ask layer, app.css) for as long as it is up, its
+   * backdrop is lifted over the one underneath, and on the way out the dialog
+   * underneath gets its scroll lock and focus trap back. Returns the instance.
+   */
+  window.showOnTop = function (el) {
+    var $m = $(el), inst = bootstrap.Modal.getOrCreateInstance(el);
+    if (!$('.modal.show').not($m).length) { inst.show(); return inst; }
+    $m.addClass('modal-over');
+    $m.one('hidden.bs.modal', function () {
+      $m.removeClass('modal-over');
+      var $under = $('.modal.show').last();
+      if (!$under.is('.modal-ask')) rearmUnder($under);
+    });
+    inst.show();
+    // Added by show() itself, synchronously, as the body's last backdrop.
+    $('.modal-backdrop').last().addClass('modal-ask-backdrop');
+    return inst;
   };
 
   /**

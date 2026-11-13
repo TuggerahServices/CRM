@@ -480,6 +480,11 @@ CREATE TABLE IF NOT EXISTS communications (
   kidsoft_push_error VARCHAR(255) NULL COMMENT 'Why the copy did not travel; the local row is still saved',
 
   created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  -- THE LAST EDIT (12 Nov 2026). Only a local_only note can be edited (a
+  -- Kidsoft comment cannot be), by anybody who holds its centre, and the entry
+  -- says so on screen. The words it replaced are in the audit row (comm.update).
+  edited_at        DATETIME     NULL,
+  edited_by        VARCHAR(190) NULL,
   PRIMARY KEY (id),
   KEY ix_comms_child (kidsoft_child_id, occurred_at),
   KEY ix_comms_waitlist (waitlist_id, occurred_at),

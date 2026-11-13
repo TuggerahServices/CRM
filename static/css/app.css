@@ -429,8 +429,10 @@ body{background:var(--lm-surface)}
    dialog as often as not, and Bootstrap gives every modal 1055 and every
    backdrop 1050, so its backdrop would fall BEHIND the dialog it is asking
    about. One layer up: its backdrop over any open dialog, itself over that,
-   still under the tooltips (1075) and the toasts (1080). */
-.modal-ask{--bs-modal-zindex:1065}
+   still under the tooltips (1075) and the toasts (1080). .modal-over is the same
+   layer for an existing dialog opened over another by window.showOnTop() - the
+   wish dialog over the Placement room sheet (13 Nov 2026). */
+.modal-ask,.modal-over{--bs-modal-zindex:1065}
 .modal-backdrop.modal-ask-backdrop{z-index:1060}
 
 /* Long grids: keep the column headings visible while scrolling down a centre's
@@ -926,114 +928,227 @@ td.cell{position:relative;text-align:center;vertical-align:middle;
 .grid-table th.grid-room:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-3px}
 
 /* ------------------------------------------------------------
-   The room roster - one room, every child, all five weekdays.
-   The workbook's per-room sheet: children down, days across. It shares the
-   panel and the status chips with the cell view, because it is another way
-   into the same grid rather than a screen of its own.
+   THE ROOM SHEET (13 Nov 2026) - one room, every child, all five weekdays,
+   in a dialog of its own (#room-modal, renderRoom() in board.js). The
+   workbook's per-room sheet: children down, days across, and everybody whose
+   name belongs on it - enrolled, offered, kept, asked, being enrolled.
+
+   It replaced the roster that was drawn into the 560px cell panel. Every
+   colour below is a token or a workbook .st-* identity hue already in this
+   file; the day blocks are window.dayStrip()'s states drawn bigger, so a green
+   box, an amber box and a blue box mean here what they mean on every screen.
    ------------------------------------------------------------ */
-.roster{font-size:.88rem}
-.roster th{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--lm-muted)}
-.roster td,.roster th{padding:.25rem .3rem}
-.roster .rs-name{width:auto}
-.roster .rs-day{width:2.6rem;text-align:center}
-.roster th.rs-open{cursor:pointer}
-.roster th.rs-open:hover{color:var(--lm-purple);text-decoration:underline}
-.roster th.rs-open:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
-/* Attends / does not. The dot is deliberately faint: the eye should read the
-   PATTERN of ticks down the week, and a row of dark dashes competes with it. */
-.roster td.rs-on{color:var(--lm-purple)}
-.roster td.rs-off{color:#d3d1e0}
-/* On the board, but holding no place (waitlist / position not available), so
-   the ticks above do not add up to the totals below. */
-.roster tr.rs-noplace{opacity:.55}
-.roster .rs-note{font-size:.68rem;line-height:1.2}
+@media (min-width:992px){
+  .rv-dialog{--bs-modal-width:min(1260px,calc(100vw - 3rem))}
+}
+/* ALWAYS THE FULL HEIGHT ON OFFER. Sized to its rows, the dialog jumped to a
+   strip the moment a chip filtered a room of forty down to the one child moving
+   rooms, and back again - the sheet should hold still while you sift it. */
+.rv-dialog.modal-dialog-scrollable .modal-content{height:100%}
+.rv-head{gap:.75rem;align-items:flex-start;padding:.85rem 1.1rem .7rem}
+.rv-heading{flex:1 1 auto;min-width:0}
+.rv-head .modal-title{font-size:1.3rem;font-weight:600;line-height:1.2}
+.rv-head .modal-title .rm-ico{margin-right:.35rem}
+/* The facts about the room, separated by a drawn dot rather than a character:
+   the punctuation rule allows nothing a US keyboard cannot type. */
+.rv-subtitle{font-size:.82rem;color:var(--lm-muted);margin-top:.15rem;display:flex;flex-wrap:wrap;
+  align-items:center;row-gap:.1rem}
+.rv-subtitle span+span::before{content:"";display:inline-block;width:.25rem;height:.25rem;
+  border-radius:50%;background:var(--lm-faint);margin:0 .5rem;vertical-align:middle}
+.rv-steps{flex:0 0 auto;margin-top:.15rem}
 
-/* THE EMPTY BOXES ARE A CONTROL. Clicking a day this child does not attend
-   records that a family has asked for it - the internal waitlist, which is the
-   one piece of demand Kidsoft has no field for. The element must be named
-   (td.rs-wishable, not .rs-wishable) to beat Bootstrap's .table>:not(caption)>*>*
-   at (0,1,1); the same trap the heat classes document. */
-.roster td.rs-wishable{cursor:pointer}
-.roster td.rs-wishable:hover{background:var(--lm-surface-2);color:var(--lm-req)}
-.roster td.rs-wishable:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
-/* Waiting for this day. The SAME hue as the grid's "asked for this day" dot, so
-   one fact is one colour whichever screen it is read on. */
-.roster td.rs-wish{color:var(--lm-req)}
-/* OFFERED A PLACE HERE AND NOT ANSWERED YET. Under the roll, above the totals.
-   Deliberately NOT faded the way .rs-noplace is - those rows are on the board
-   holding nothing, these are live families somebody has to ring. A tint groups
-   them instead, so the eye reads them as a different kind of row rather than a
-   weaker one.
+/* The band under the heading: the week in figures, then the legend that is
+   also the filter. Outside the scroller, so it stays put while the roll scrolls. */
+.rv-top{padding:.6rem 1.1rem .7rem;background:var(--lm-surface);border-bottom:1px solid var(--lm-line)}
+.rv-top:empty{display:none}
+.rv-figs{display:flex;flex-wrap:wrap;gap:.25rem 1.4rem;font-size:.85rem;color:var(--lm-ink-3);
+  margin-bottom:.5rem}
+.rv-fig b{font-size:1.15rem;font-weight:700;color:var(--lm-ink);margin-right:.1rem;
+  font-variant-numeric:tabular-nums}
+.rv-fig small{font-size:.85rem;color:var(--lm-muted);margin-right:.15rem}
+.rv-fig-free b{color:var(--lm-danger-text)}
+.rv-fig-full b{color:var(--lm-good-text)}
+.rv-fig-cf b{color:var(--lm-warn-deep)}
+.rv-chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.rv-chip{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--lm-line-2);
+  background:#fff;border-radius:2rem;padding:.2rem .65rem .2rem .5rem;font-size:.78rem;line-height:1.3;
+  color:var(--lm-ink-2);transition:background-color .1s,border-color .1s}
+.rv-chip b{font-weight:700;color:var(--lm-ink);font-variant-numeric:tabular-nums}
+.rv-chip:hover{border-color:var(--lm-purple);background:var(--lm-purple-light)}
+.rv-chip:focus-visible{outline:2px solid var(--lm-purple);outline-offset:1px}
+.rv-chip[aria-pressed="true"]{background:var(--lm-purple);border-color:var(--lm-purple);color:#fff}
+.rv-chip[aria-pressed="true"] b{color:#fff}
+.rv-chip-all{padding-left:.65rem}
+/* The chip's swatch is the row label's own colour. Width and style only on the
+   edge: a shorthand here would also set its colour, at the same specificity as
+   the .st-* class that supplies it and later in the file, so it would win. */
+/* The edge is as wide as the swatch, so the whole dot takes the label's strong
+   colour rather than its wash - a pale square at .8rem told nothing apart. */
+.rv-sw{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;
+  border-left-width:.7rem;border-left-style:solid}
+/* Starting shares Enrolled's green, so its dot is a RING - a place held but not
+   filled in yet, the same idea as its hatched day block. */
+.rv-sw.rv-p-start{border-left-width:0;background:var(--lm-good-wash);box-shadow:inset 0 0 0 2px var(--lm-good)}
 
-   THE MARK IS A BOOKMARK IN A NEUTRAL INK, not a purple tick. A tick on this
-   sheet means the child attends that day and none of these do yet - the offer
-   can still lapse. Same reasoning as the neutral day strip the cell panel gives
-   the same families; see window.dayStrip(). Named td.rs-held, not .rs-held, to
-   beat Bootstrap's .table>:not(caption)>*>* at (0,1,1) - the trap the wishable
-   cells above already document. */
-.roster tr.rs-offered td{background:var(--lm-surface-2)}
-.roster td.rs-held{color:var(--lm-ink-2)}
-/* ITS OWN LINE, not a trailing span. Inline, one name in four wrapped and only
-   one - "Daniel Harrison smith" - so three rows were one line tall and the
-   fourth was two, which is the ragged block a column width produces when it
-   nearly fits. A block is uniform whatever the name. */
-.roster .rs-sub{display:block;font-size:.72rem;color:var(--lm-muted);line-height:1.3}
-.rs-held-key{color:var(--lm-ink-2)!important}
+/* THE SCROLLER IS THE DIALOG BODY, in both directions, so the day heads pin to
+   its top and the names to its left edge. A wrapper with overflow of its own
+   would become the sticky container instead and pin nothing. No padding: the
+   table runs to the edges like the grid's own card. */
+.rv-body{padding:0;overflow:auto}
+.rv-table{width:100%;min-width:56rem;border-collapse:separate;border-spacing:0;font-size:.86rem;
+  table-layout:fixed}
+.rv-table col.rv-c-name{width:21rem}
+.rv-table col.rv-c-n{width:4.2rem}
+.rv-table th,.rv-table td{padding:.22rem .35rem;vertical-align:middle;border-bottom:1px solid var(--lm-line)}
+/* The name column holds still when the sheet scrolls sideways (a phone, a
+   narrow window), so a row of boxes never loses whose it is. */
+.rv-table .rv-name{position:sticky;left:0;z-index:1;background:#fff;padding-left:1.1rem}
+.rv-table td.rv-n,.rv-table th.rv-n{text-align:center;color:var(--lm-muted);font-variant-numeric:tabular-nums}
 
-/* The key glyph in the hint line under the table. !important because it sits
-   inside a .text-muted paragraph and Bootstrap's colour utilities carry
-   !important, so nothing short of it wins - the same reason .text-primary above
-   does. Without it the key renders grey and stops matching the blue hourglasses
-   it is there to explain, which is the whole job of a key. */
-.rs-wish-key{color:var(--lm-req)!important}
+/* The heads, pinned. thead itself is the sticky box, so the band rows under the
+   day heads ride with them. */
+.rv-table thead{position:sticky;top:0;z-index:3}
+.rv-table thead th,.rv-table thead td{background:#fff}
+.rv-table thead tr.rv-hd>*{border-bottom:2px solid var(--lm-line-2);vertical-align:bottom}
+.rv-table th.rv-hname{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--lm-muted);
+  font-weight:600;z-index:4}
+.rv-table th.rv-hn{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.rv-table th.rv-hn div{font-size:.95rem;text-transform:none;letter-spacing:0;color:var(--lm-ink);font-weight:700}
 
-/* HELD FOR THIS CHILD, AND NOT BOOKED. The third thing an empty box on the
-   roster can say, and it had to be told apart from the other two at a glance:
-   purple tick = attends, blue hourglass = asked for and has not got, amber
-   padlock = kept for them and out of the free figure.
+/* A DAY HEAD IS THE GRID CELL'S FIGURES FOR THAT DAY, and a button into it. */
+.rv-table th.rv-dh{cursor:pointer;padding:.45rem .5rem .4rem;font-weight:400;transition:background-color .1s}
+.rv-table th.rv-dh:hover{background:var(--lm-purple-light)}
+.rv-table th.rv-dh:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
+.rv-dh-top{display:flex;justify-content:space-between;align-items:baseline;gap:.3rem}
+.rv-dn{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--lm-ink-2)}
+.rv-dfig{font-size:1rem;font-weight:700;color:var(--lm-ink);font-variant-numeric:tabular-nums}
+.rv-dfig small{font-size:.8rem;font-weight:500;color:var(--lm-muted)}
+/* ONE BOX PER PLACE. Green placed, ink-grey kept by an offer or re-enrolment,
+   amber held for a child not booked on the day, an empty box free, red over.
+   Past 30 places the gaps go: a hairline between each of 40 boxes in 150px is
+   a grey smear, not a count. */
+.rv-bar{display:flex;gap:2px;height:.6rem;margin:.35rem 0 .3rem}
+.rv-bar i{flex:1 1 0;min-width:0;border-radius:1px;background:#fff;box-shadow:inset 0 0 0 1px var(--lm-line-2)}
+.rv-bar i.b-on{background:var(--lm-good);box-shadow:none}
+.rv-bar i.b-kept{background:var(--lm-ink-3);box-shadow:none}
+.rv-bar i.b-held{background:var(--lm-warn);box-shadow:none}
+.rv-bar i.b-over{background:var(--lm-danger);box-shadow:none}
+.rv-bar.rv-bar-dense{gap:0}
+.rv-bar.rv-bar-dense i{border-radius:0}
+.rv-dh-sub{display:flex;flex-wrap:wrap;align-items:center;gap:.15rem .4rem;font-size:.72rem;line-height:1.3}
+.rv-st-full{color:var(--lm-good-text);font-weight:600}
+.rv-st-free{color:var(--lm-danger-text);font-weight:600}
+.rv-st-over{color:#fff;background:var(--lm-danger);border-radius:.2rem;padding:0 .3rem;font-weight:600}
+.rv-kept{color:var(--lm-ink-3)}
+/* The grid's top-left tag, the same amber and ink as .cell-cf and the "+1 free"
+   badge, so "coming free" reads alike on the grid, the panel and here. */
+.rv-cf{background:var(--lm-warn);color:#332200;border-radius:.2rem;padding:0 .3rem;font-weight:600}
+.rv-ip{display:inline-flex;align-items:center;gap:.2rem;color:var(--lm-purple);font-weight:600}
+.rv-ip .cell-prog{position:static;display:inline-block}
 
-   AMBER, and it is the only mark on this sheet that is not one of the app's two
-   working hues. That is the point - a place deliberately out of use is not a
-   normal state of a weekday, and reading it as either "attends" or "wants" is
-   exactly the wrong conclusion. --lm-warn-deep is 5.08:1 on white, well over the
-   3:1 a glyph needs; --lm-warn-text at 2.0:1 would not have been legible here.
+/* The staffing bands counted per day, pinned under the day heads. */
+.rv-table tr.rv-band>*{background:var(--lm-surface);font-size:.78rem;padding-top:.2rem;padding-bottom:.2rem;
+  border-bottom-color:var(--lm-line)}
+.rv-table tr.rv-band th{font-weight:600;color:var(--lm-ink-2)}
+.rv-table tr.rv-band-last>*{border-bottom:2px solid var(--lm-line-2)}
+.rv-table td.rv-bandn{text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
 
-   Named td.rs-hold, not .rs-hold, to beat Bootstrap's .table>:not(caption)>*>*
-   at (0,1,1) - the same specificity trap the wishable and held cells above
-   document, and the one that once rendered the whole heat map as a plain white
-   table. */
-.roster td.rs-hold{color:var(--lm-warn-deep)}
-.roster td.rs-hold:hover{color:var(--lm-warn-deep)}
-.rs-hold-key{color:var(--lm-warn-deep)!important}
+/* A SECTION IS A KIND OF ROW: enrolled, offered, kept, asked, in progress. */
+.rv-table tr.rv-sec th{position:sticky;left:0;background:var(--lm-surface-head);font-size:.7rem;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--lm-ink-3);font-weight:700;
+  padding:.5rem .35rem .35rem 1.1rem;border-bottom:1px solid var(--lm-line-2)}
+.rv-n{font-weight:600}
+.rv-sec .rv-n{background:#fff;border:1px solid var(--lm-line-2);color:var(--lm-ink-2);border-radius:1rem;
+  padding:0 .45rem;margin-left:.35rem;letter-spacing:0}
+.rv-table tbody tr.rv-row:hover>td{background:var(--lm-surface)}
+.rv-table tr.rv-faded>td{opacity:.55}
 
-/* A CHILD THE BOARD CANNOT SHOW, whose place is being held anyway - removed from
-   care pending an improvement in behaviour, so Kidsoft holds no booking to
-   derive a roll row from. Tinted like the offered rows and for the same reason:
-   these are live children somebody is working with, so fading them the way
-   .rs-noplace fades a row holding nothing would say the opposite.
+/* The name cell: the chip (green, toned by staffing band), the age, and one
+   line per thing happening to this child - a label in the workbook's colour,
+   then the dates in words. */
+.rv-who{display:flex;align-items:center;flex-wrap:wrap;gap:.2rem .45rem}
+.rv-table .place-chip{display:inline-block}
+.rv-table .place-chip:focus-visible{outline:2px solid var(--lm-purple);outline-offset:1px}
+.rv-age{font-size:.74rem;color:var(--lm-muted);font-variant-numeric:tabular-nums}
+.rv-what{display:flex;flex-wrap:wrap;align-items:center;gap:.15rem .4rem;margin-top:.25rem;line-height:1.3}
+.rv-det{font-size:.76rem;color:var(--lm-ink-3)}
+.rv-what .badge{font-size:.66rem}
+/* A ROW'S LABEL. The edge colour comes from the .st-* (or .rv-p-*) class beside
+   it, so width and style only - see .rv-sw. */
+.rv-pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.7rem;font-weight:600;line-height:1.35;
+  padding:.05rem .45rem;border-radius:.25rem;border-left-width:3px;border-left-style:solid;
+  color:var(--lm-ink);white-space:nowrap}
+.rv-pill .fa-solid{font-size:.68rem;opacity:.75}
+/* The four the workbook never had, each a step of the hue the same fact
+   already wears: green starting (a place is held from then), amber held (the
+   padlock's), blue asked for (--lm-req, the grid's dot), the In progress wash
+   with the brand navy of the grid's bottom-right dot. */
+.rv-p-start{background:var(--lm-good-wash);border-left-color:var(--lm-good)}
+.rv-p-held{background:var(--lm-warn-wash);border-left-color:var(--lm-warn-deep)}
+.rv-p-asked{background:var(--lm-req-wash);border-left-color:var(--lm-req)}
+.rv-p-prog{background:var(--lm-engaged-wash);border-left-color:var(--lm-purple)}
+.rv-p-reenrol{background:var(--lm-surface-2);border-left-color:var(--lm-ink-3)}
 
-   The name is a plain span, not a .place-chip, because there is no placement row
-   behind it to open - see the comment at the call site. It still needs to read
-   as a name rather than as stray text, so it takes the chip's weight and ink
-   without the chip's affordance. */
-.roster tr.rs-heldout td{background:var(--lm-surface-2)}
-.rs-heldout-name{font-weight:600;color:var(--lm-ink)}
+/* THE DAY BLOCKS. A box per day, filling its cell, in dayStrip()'s colours. */
+.rv-table td.rv-d{padding:2px 4px}
+.rv-b{display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:1.8rem;
+  padding:.15rem .35rem;border-radius:.35rem;font-size:.72rem;font-weight:600;line-height:1.15;
+  text-align:center;overflow:hidden}
+.rv-b .fa-solid{font-size:.72rem;flex:0 0 auto}
+.rv-b .rm-ico{flex:0 0 auto}
+.rv-bt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* Attends: .db-has. */
+.rv-b.rv-on{background:var(--lm-good-mid);color:var(--lm-good-text);box-shadow:inset 0 0 0 1.5px var(--lm-good)}
+/* Booked, from a later date: the same green, not filled in yet. */
+.rv-b.rv-from{background:var(--lm-good-wash);color:var(--lm-good-text);
+  box-shadow:inset 0 0 0 1.5px var(--lm-good);background-image:repeating-linear-gradient(135deg,
+  transparent 0 6px,color-mix(in srgb,var(--lm-good) 9%,transparent) 6px 9px)}
+/* Coming free: .db-ending, the "+1 free" badge's colour exactly. */
+.rv-b.rv-end{background:var(--lm-warn);color:#332200}
+/* Held for them and not booked: .db-held. */
+.rv-b.rv-hold{background:var(--lm-warn-mid);color:var(--lm-warn-ink);box-shadow:inset 0 0 0 1.5px var(--lm-warn-deep)}
+/* Asked for, has not got it: .db-want's hue as a wash, so the word stays legible. */
+.rv-b.rv-want{background:var(--lm-req-wash);color:var(--lm-req);box-shadow:inset 0 0 0 1.5px var(--lm-req)}
+/* Kept by an offer or a re-enrolment: .db-plain, named and neutral - none of
+   these children attends yet, and the offer may still lapse. */
+.rv-b.rv-offer{background:var(--lm-line-2);color:var(--lm-ink);box-shadow:inset 0 0 0 1.5px var(--lm-ink-3)}
+/* Being enrolled for, nothing held: an outline only, in the In progress navy. */
+.rv-b.rv-prog{background:var(--lm-engaged-wash);color:var(--lm-purple);
+  box-shadow:inset 0 0 0 1.5px var(--lm-purple);opacity:.9}
+/* In another room that day: there, just not here. Quiet on purpose. */
+.rv-b.rv-else{background:var(--lm-surface-2);color:var(--lm-muted);font-weight:500;justify-content:flex-start}
+.rv-b.rv-else .rv-bt{white-space:nowrap}
+/* An empty day, which is a control: a faint plus on hover says so. */
+.rv-b.rv-off{color:transparent}
+.rv-table td.rv-pick{cursor:pointer}
+.rv-table td.rv-pick:hover .rv-b{filter:brightness(.96)}
+.rv-table td.rv-pick:hover .rv-off{background:var(--lm-surface-2);color:var(--lm-req)}
+.rv-table td.rv-pick:focus-visible{outline:2px solid var(--lm-purple);outline-offset:-2px}
 
-/* PART-WAY THROUGH ENROLLING FOR DAYS HERE (14 Oct 2026). Tinted with the other
-   families who are not on the roll, for the same reason - live families
-   somebody is ringing, not rows holding nothing. The mark is the stage icon the
-   Waitlist already hangs on an In progress family, in MUTED ink: nothing is held,
-   and it must not out-shout the bookmark (held by an offer) or the padlock. */
-.roster tr.rs-progress td{background:var(--lm-surface-2)}
-.roster td.rs-prog{color:var(--lm-muted)}
-.rs-prog-key{color:var(--lm-muted)!important}
+/* The footer: what a coloured day means, for the marks this room has. */
+.rv-foot{justify-content:space-between;align-items:center;gap:.5rem 1rem;padding:.5rem 1.1rem;
+  flex-wrap:nowrap}
+.rv-keys{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem 1rem;font-size:.75rem;color:var(--lm-ink-3)}
+.rv-key{display:inline-flex;align-items:center;gap:.35rem}
+.rv-key .rv-b{min-height:1.15rem;width:1.6rem;padding:0;font-size:.6rem;border-radius:.25rem}
+.rv-key .rv-b .fa-solid{font-size:.6rem}
+.rv-key-hint{color:var(--lm-muted)}
 
-/* The green tones counted per day, at the TOP of the roster under the day
-   headings. A summary block like the Placed row at the foot, so it takes the
-   totals' surface; the rule sits under the LAST band row only, so the block
-   reads as one piece rather than as three more children. */
-.roster tr.rs-band th,.roster tr.rs-band td{background:var(--lm-surface)}
-.roster tr.rs-band-last th,.roster tr.rs-band-last td{border-bottom:2px solid var(--lm-line-2)}
+/* A PHONE. The dialog is full screen (modal-fullscreen-lg-down) and the sheet
+   scrolls sideways under a pinned name column - which at 21rem was 336 of 390px,
+   leaving one weekday beside it. Narrower names, smaller words, the same sheet. */
+@media (max-width:767.98px){
+  .rv-head,.rv-top,.rv-foot{padding-left:.75rem;padding-right:.75rem}
+  .rv-table{min-width:44rem;font-size:.82rem}
+  .rv-table col.rv-c-name{width:11.5rem}
+  .rv-table col.rv-c-n{width:3rem}
+  .rv-table .rv-name,.rv-table tr.rv-sec th{padding-left:.6rem}
+  .rv-det{font-size:.7rem}
+  .rv-age{display:none}
+  .rv-figs{gap:.15rem .9rem;font-size:.8rem}
+  .rv-foot{flex-wrap:wrap}
+  .rv-keys{font-size:.7rem;gap:.2rem .7rem}
+}
 
 /* The same count for one day, over the cell panel's roll. */
 .cp-bands{display:flex;flex-wrap:wrap;gap:.2rem 1rem;font-size:.78rem;color:var(--lm-ink-2);
@@ -1486,6 +1601,10 @@ button.cp-name:hover{color:var(--lm-pink);text-decoration:underline}
    on every line shouts louder than the notes. */
 .btn.comm-del{--bs-btn-color:var(--lm-ink-3);--bs-btn-hover-color:var(--bs-danger);
   --bs-btn-active-color:var(--bs-danger);line-height:1}
+/* The Edit on a Support plans note, grey for the same reason, and the note it
+   has put back into the form above while it is being edited. */
+.btn.sp-comm-edit{--bs-btn-color:var(--lm-ink-3);line-height:1}
+.comm-entry.comm-editing{background:var(--lm-req-wash)}
 
 /* A STAGE CHANGE in the work modal's timeline, sitting in the same column as the
    logged contacts (18 Sep 2026).

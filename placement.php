@@ -156,9 +156,45 @@ layout_header('Placement', $user, 'board', [
       <h5 class="offcanvas-title mb-0" id="cell-title">Cell</h5>
       <div class="small text-muted" id="cell-subtitle"></div>
     </div>
+    <?php /* Shown only when the cell was opened from the room sheet's day head. */ ?>
+    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto me-2 d-none" id="cell-back">
+      <i class="fa-solid fa-table-list me-1"></i>Whole room</button>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
   </div>
   <div class="offcanvas-body" id="cell-body"></div>
+</div>
+
+<?php /* THE ROOM SHEET (13 Nov 2026): one room, every child, all five weekdays,
+         opened from the room's name on the grid. It was drawn into the cell panel
+         above until then; Broc asked for a dialog that says more about the room
+         across the week - who is enrolled, and everybody else whose name belongs
+         on that sheet: offered, waiting on paperwork, moving rooms, ending care,
+         swapping and dropping days. Rendered by renderRoom() in board.js from the
+         board already on the page; nothing is fetched. See placement-board.md. */ ?>
+<div class="modal fade" id="room-modal" tabindex="-1" aria-labelledby="rv-title">
+  <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-lg-down rv-dialog">
+    <div class="modal-content">
+      <div class="modal-header rv-head">
+        <div class="rv-heading">
+          <h5 class="modal-title" id="rv-title">Room</h5>
+          <div class="rv-subtitle" id="rv-subtitle"></div>
+        </div>
+        <div class="btn-group btn-group-sm rv-steps" role="group" aria-label="Other rooms">
+          <button type="button" class="btn btn-outline-secondary rv-step" data-step="-1">
+            <i class="fa-solid fa-chevron-left"></i><span class="visually-hidden">Previous room</span></button>
+          <button type="button" class="btn btn-outline-secondary rv-step" data-step="1">
+            <i class="fa-solid fa-chevron-right"></i><span class="visually-hidden">Next room</span></button>
+        </div>
+        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="rv-top" id="rv-top"></div>
+      <div class="modal-body rv-body" id="rv-body"></div>
+      <div class="modal-footer rv-foot">
+        <div class="rv-keys" id="rv-foot-key"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Placement editor -->

@@ -329,6 +329,25 @@ Matched on folded **name + DOB against ACTIVE children only** - stricter than `s
 phone/email rule, because this promotes a family over others who applied earlier. **The reason
 is printed on the row** ("Already in care at Tuggerah") so a human sees what the machine saw.
 
+**A DOB UP TO 92 DAYS OUT STILL MATCHES IF A PARENT IS SHARED TOO (12 Nov 2026).** Broc, on
+Sunny Trinca (#8 at Point Clare, enrolled at Kanwal, flagged nowhere): families type an estimated
+DOB for an unborn baby, *"Maybe within a 3 month window?"* Her application said 22/11/2024 and
+Kidsoft 25/11/2024. **She fell between two rules:** this one wanted the exact date, and
+`siblings.php` found her through her mother's email and mobile but dropped her as the applicant
+herself, because the name was the same. A "TBA Trinca" would have kept the sibling line, which is
+why the placeholder rows always showed something.
+
+- **Exact name, DOB within `WAITLIST_IN_CARE_DOB_DAYS` (92), AND the application's email or mobile
+  reaches THAT ChildID** through `enrolled_family_index()` (`waitlist_shares_parent()`): the
+  sibling index, so the same parent filter (enrolling guardian, mother or father, no work numbers).
+  An exact DOB still needs nothing else. The contact test is the family merge rule's "both", because
+  name + DOB alone has merged different families before.
+- **Measured over 885 open applications:** exact 6 (all sharing a parent); 1 to 92 days out 2, Sunny
+  Trinca and Finley Evans (Terrigal, enrolled at Wamberal), 3 days each, both sharing a parent; **a
+  same-named child of another family at any gap: 0.** Sunny went #8 -> #1, Finley to #2 at Terrigal.
+- **The green days are read under Kidsoft's DOB**, not the typed one, or a near match at its own
+  centre would lose them.
+
 #### The days they ALREADY HOLD are green, and that changes what blue means
 
 `enrolled_days_index()` (`_incl/waitlist.php`) -> `attending_days` on the row -> `.dbox.db-has` /
