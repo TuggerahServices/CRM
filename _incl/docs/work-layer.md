@@ -1447,6 +1447,9 @@ the database at Broc's request. **An administrator may now delete any note at an
   requests and can fall either side of a minute.
 - **One row, every sibling.** `communication_siblings` cascades, so a note shown on a brother or
   sister goes from both. The confirm names them.
+- **Editing (12 Nov 2026) is Support plans only**, for `local_only` notes, any role - see
+  [support-plans.md](support-plans.md). `/api/comms` `update` rewords a folded stage event the same
+  way, through the shared `comms_folded_events()`.
 - Audit: `comm.delete` with `summary`, `author`, `as_administrator` when it was not their own,
   the Kidsoft fields when the note travelled, and `event_notes_cleared`.
 

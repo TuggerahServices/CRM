@@ -262,7 +262,31 @@ function priority_rank(array $w): array {
  * `is_reenrolment`, the rung above, is set on ZERO rows group-wide - nothing has
  * ever written it. Left in place rather than removed: the re-enrolment round runs
  * in Kidsoft, so if it ever does feed this table that rung is where it belongs.
+ *
+ * A DOB A FEW DAYS OUT IS STILL THE CHILD, WHEN A PARENT IS SHARED TOO (12 Nov
+ * 2026). Broc, on Sunny Trinca: waiting at Point Clare, enrolled at Kanwal, and
+ * flagged nowhere - *"a lot of families put the estimated DOB for unborn babies
+ * when submitting the waitlist ... Maybe within a 3 month window?"* The
+ * application said 22/11/2024 and Kidsoft's child record 25/11/2024, so this
+ * missed her, and siblings.php dropped her as well, because a same-named child
+ * is the applicant themselves and not a brother or sister. She fell between
+ * the two rules and read "Standard".
+ *
+ * So the name still has to match exactly, and a DOB within
+ * WAITLIST_IN_CARE_DOB_DAYS counts when the application's email or mobile also
+ * reaches THAT ChildID through siblings.php's parent index. That index is the
+ * strict one (enrolling guardian, mother or father; no work numbers), and the
+ * extra test is the waitlist family merge rule's "both": name + DOB alone has
+ * merged different families before. Measured 12 Nov 2026 over 885 open
+ * applications against every active child: an exact DOB matched 6, all
+ * sharing a parent; a DOB 1 to 92 days out matched 2, Sunny Trinca and Finley
+ * Evans (Terrigal, enrolled at Wamberal), both 3 days out and both sharing a
+ * parent; and NO same-named child of another family at any gap. So the
+ * contact test costs nothing today, and it is there for the first Oliver Smith
+ * born a month after another one.
  */
+const WAITLIST_IN_CARE_DOB_DAYS = 92;
+
 function waitlist_mark_in_care(array $rows): array {
     if (!$rows) return $rows;
     static $index = null;
@@ -271,15 +295,21 @@ function waitlist_mark_in_care(array $rows): array {
     // Point Clare" can open that child's dialog. A second map rather than a
     // change to $index, which in_care_at and nothing else reads.
     static $who = null;
+    // By name alone, for the near-DOB match above: name_key => [[dob, key], ...]
+    static $byName = null;
+    static $services = [];
     if ($index === null) {
-        $index = $who = [];
+        $index = $who = $byName = [];
         foreach (centres_all() as $c) {
+            $services[$c['name']] = $c['kidsoft_service_id'];
             try { $kids = kidsoft_children($c['kidsoft_service_id']); }
             catch (Throwable $e) { continue; }   // an outage must not reorder the queue
             foreach ($kids as $k) {
                 if (empty($k['Active'])) continue;
-                $ik = name_key((string)($k['FirstName'] ?? ''), (string)($k['LastName'] ?? ''))
-                    . '|' . substr((string)($k['DOB'] ?? ''), 0, 10);
+                $nk  = name_key((string)($k['FirstName'] ?? ''), (string)($k['LastName'] ?? ''));
+                $dob = substr((string)($k['DOB'] ?? ''), 0, 10);
+                $ik  = $nk . '|' . $dob;
+                if (!isset($index[$ik]) && $dob !== '') $byName[$nk][] = ['dob' => $dob, 'key' => $ik];
                 $index[$ik][] = $c['name'];
                 $who[$ik][] = ['centre' => $c['name'], 'centre_id' => (int)$c['id'],
                                'ks_id' => (string)($k['ChildID'] ?? '')];
@@ -288,20 +318,56 @@ function waitlist_mark_in_care(array $rows): array {
     }
     $booked = enrolled_days_index();
     foreach ($rows as &$w) {
-        $key = name_key((string)$w['child_first_name'], (string)$w['child_last_name'])
-             . '|' . substr((string)$w['child_dob'], 0, 10);
+        $nk  = name_key((string)$w['child_first_name'], (string)$w['child_last_name']);
+        $dob = substr((string)$w['child_dob'], 0, 10);
+        $key = $nk . '|' . $dob;
         $at = $w['child_dob'] ? ($index[$key] ?? null) : null;
-        $w['in_care']    = $at !== null;
+        $kids = $at ? $who[$key] : [];
+        // WHICH ENROLMENT'S KEY the green days are read under: Kidsoft's DOB,
+        // which on a near match is not the one the family typed.
+        $keys = $at ? [$key] : [];
+        if (!$at && $dob !== '' && isset($byName[$nk])) {
+            foreach ($byName[$nk] as $cand) {
+                if (abs(strtotime($cand['dob']) - strtotime($dob)) / 86400 > WAITLIST_IN_CARE_DOB_DAYS) continue;
+                foreach ($who[$cand['key']] as $i => $c) {
+                    if (!waitlist_shares_parent($w, $c['ks_id'], $services)) continue;
+                    $kids[] = $c;
+                    $at[]   = $index[$cand['key']][$i];
+                    $keys[$cand['key']] = $cand['key'];
+                }
+            }
+        }
+        $w['in_care']    = (bool)$at;
         $w['in_care_at'] = $at ? implode(', ', array_unique($at)) : null;
-        $w['in_care_children'] = $at ? $who[$key] : [];
+        $w['in_care_children'] = $kids;
         // WHICH DAYS THEY ALREADY HOLD AT THE CENTRE THEY ARE APPLYING TO. See
         // enrolled_days_index() for why this is the centre's own bookings and not
         // the group's.
-        $days = ($w['child_dob'] && $at) ? ($booked[$key][(int)$w['centre_id']] ?? []) : [];
+        $days = [];
+        foreach ($keys as $k) $days = array_merge($days, $booked[$k][(int)$w['centre_id']] ?? []);
+        $days = array_values(array_unique($days));
+        sort($days);
         $w['attending_days'] = $days;
     }
     unset($w);
     return $rows;
+}
+
+/**
+ * Does this application's email or mobile reach this enrolled ChildID through a
+ * parent? siblings.php's index, so the same parent filter decides it.
+ */
+function waitlist_shares_parent(array $w, string $ksId, array $services): bool {
+    if ($ksId === '') return false;
+    try { $fam = enrolled_family_index($services); }
+    catch (Throwable $e) { return false; }
+    $lists = [];
+    if (($e = sibling_email_key($w['guardian_email'] ?? null)) !== null) $lists[] = $fam['email'][$e] ?? [];
+    if (($p = sibling_phone_key($w['guardian_phone'] ?? null)) !== null) $lists[] = $fam['phone'][$p] ?? [];
+    foreach ($lists as $list) {
+        foreach ($list as $c) if ($c['kidsoft_child_id'] === $ksId) return true;
+    }
+    return false;
 }
 
 /**

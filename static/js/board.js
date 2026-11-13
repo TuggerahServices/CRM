@@ -28,9 +28,10 @@
   var data = null;       // current centre-year (from /api/cells)
   var overview = null;   // current org overview (from /api/board)
   var openCell = null;   // { roomId, wd } while the panel is up
-  // The same panel also opens a whole ROOM (every child, all five weekdays), so
-  // exactly one of these two is ever set - whichever the panel is showing.
-  var openRoom = null;   // roomId while the room roster is up
+  // A whole ROOM (every child, all five weekdays) opens in a dialog of its own,
+  // the room sheet - see renderRoom(). Set while it is up, and while it has
+  // stepped aside for another dialog it will come back to.
+  var openRoom = null;
   // The banner's "Show who" list stays open across re-renders (every save
   // reloads the board) once somebody has opened it.
   var cfWhoOpen = false;
@@ -46,6 +47,9 @@
   var deepRoom = parseInt($('#init-room').val(), 10) || 0;
   var deepWd   = parseInt($('#init-wd').val(), 10) || 0;
   var deepCell = deepRoom && deepWd >= 1 && deepWd <= 5 ? { roomId: deepRoom, wd: deepWd } : null;
+  // A room with no weekday opens that room's sheet. Until 13 Nov 2026 it did
+  // nothing at all, which Marketing's room links had worked around.
+  var deepSheet = deepRoom && !deepCell ? deepRoom : 0;
 
   // The year is the only axis on this screen now, in both views. Stepping it
   // NAVIGATES rather than re-fetching in place: the year is remembered
@@ -1470,6 +1474,10 @@
     // exactly what made it unreadable.
     $('#cell-title').html(roomIcon(r.name) + esc(r.name));
     $('#cell-subtitle').text('Every ' + DAYS_LONG[wd] + ' in ' + data.year);
+    // Opened from the room sheet's day head: the way back to the whole room.
+    var back = rvBack ? room(rvBack) : null;
+    $('#cell-back').toggleClass('d-none', !back)
+      .attr('title', back ? 'Back to everyone in ' + back.name : '');
 
     var body = '';
 
@@ -1776,76 +1784,158 @@
     $('#cell-body').html(body);
   }
 
-  // --- The room roster -------------------------------------------------------
+  // --- The room sheet ---------------------------------------------------------
+  //
+  // ONE ROOM, EVERY CHILD, ALL FIVE WEEKDAYS - IN A DIALOG OF ITS OWN (13 Nov 2026).
+  //
+  // This is the per-room sheet the workbooks kept, and the count grid
+  // deliberately replaced it - a count is what says whether a day is SOLD, which
+  // is the job. But a count cannot say who is in the room, and that is what a
+  // ratio check, a room leader and a parent on the phone all ask for. It used to
+  // be drawn into the cell panel, 560px wide, as a list of ticks with the
+  // families who are not on the roll in tinted rows and four paragraphs of
+  // footnotes under it explaining the marks.
+  //
+  // Broc asked for it as a dialog that says more about the room across the week:
+  // the enrolled children AND everybody else whose name belongs on that sheet -
+  // offered, waiting on paperwork, moving rooms, ending care, swapping days,
+  // dropping days - in colour. So:
+  //
+  //   - EVERY FACT HERE IS ONE THE BOARD ALREADY SHIPS. Nothing is fetched and
+  //     nothing is re-derived: who is ending what is cells_end_kind()'s answer
+  //     (`ends` on the roll row), which places come free is `departures`, the
+  //     offered families are `promised_children`, and so on. What is composed
+  //     here is only what a ROW is about - "swapping days" is a day being given
+  //     up and another day starting, in the same room, for the same child, and
+  //     "moving rooms" is this room's start lining up with another room's move.
+  //   - THE ROW STATUSES ARE THE WORKBOOK'S OWN LEGEND (.st-*). The team learned
+  //     Ending care, Move rooms, Swap days, Dropping day, Offered and Waiting for
+  //     paperwork as colours on their spreadsheets; here Kidsoft supplies the
+  //     fact and nobody has to type the status.
+  //   - THE DAY BLOCKS SPEAK window.dayStrip()'s LANGUAGE, bigger: green
+  //     attends, amber coming free, pale amber held, blue asked for, neutral
+  //     held by an offer. One fact keeps one colour on every screen.
+  //   - THE LEGEND IS THE FILTER. Each status is a chip with its count, and
+  //     pressing one shows only those rows - so "who is leaving this room" is one
+  //     click rather than a scan of forty names.
+  //   - THE COLUMN HEADS ARE THE GRID'S OWN FIGURES for that day, with a bar of
+  //     one box per place, and they open the cell, which is where the shortlist
+  //     and the actions are.
 
   /**
-   * One room, every child, all five weekdays: children down, days across, a mark
-   * in each day they attend.
-   *
-   * This is the per-room sheet the workbooks kept, and the count grid deliberately
-   * replaced it - a count is what says whether a day is SOLD, which is the job.
-   * But a count cannot say who is in the room, and that is what a ratio check, a
-   * room leader and a parent on the phone all ask for. So it is another way into
-   * the same grid rather than a sixth screen: same panel, same placement editor,
-   * and the totals underneath are the GRID'S OWN cell figures reprinted, not a
-   * second count - one definition of "placed" is what keeps two views agreeing.
-   *
-   * Nothing is fetched. cells_year() already ships each room's full placement
-   * rows (so the editor can open a child without a round trip) and every row
-   * carries its weekdays, so this is a render of data the page is holding.
+   * What a row can be about. `pill` is the class its label takes - the workbook
+   * statuses keep their .st-* identity colours, and the four the workbook never
+   * had take a step of the hue the same fact already wears elsewhere.
    */
-  function renderRoom() {
-    if (!openRoom) return;
-    var r = room(openRoom);
-    if (!r) { cellPanel.hide(); return; }
+  var RV_KIND = {
+    enrolled:  { label: 'Enrolled',              pill: 'st-confirmed' },
+    starting:  { label: 'Starting',              pill: 'rv-p-start',           icon: 'fa-right-to-bracket' },
+    leaving:   { label: 'Ending care',           pill: 'st-ending_care',       icon: 'fa-right-from-bracket' },
+    dropping:  { label: 'Dropping days',         pill: 'st-dropping_day',      icon: 'fa-calendar-minus' },
+    swapping:  { label: 'Swapping days',         pill: 'st-swap_days',         icon: 'fa-right-left' },
+    moving:    { label: 'Moving rooms',          pill: 'st-move_rooms',        icon: 'fa-arrows-turn-right' },
+    offered:   { label: 'Offered',               pill: 'st-offered',           icon: 'fa-bookmark' },
+    paperwork: { label: 'Waiting for paperwork', pill: 'st-waiting_paperwork', icon: 'fa-file-signature' },
+    reenrol:   { label: 'Re-enrolment',          pill: 'rv-p-reenrol',         icon: 'fa-rotate' },
+    held:      { label: 'Day held',              pill: 'rv-p-held',            icon: 'fa-lock' },
+    asked:     { label: 'Asked for a day',       pill: 'rv-p-asked',           icon: 'fa-hourglass-half' },
+    progress:  { label: 'In progress',           pill: 'rv-p-prog',            icon: 'fa-list-check' }
+  };
+  // A status somebody TYPED on the placement editor, for the few rows that carry
+  // one. Kidsoft's answer wins wherever it has one; this only names a row it
+  // says nothing about.
+  var RV_STATUS_KIND = {
+    ending_care: 'leaving', move_rooms: 'moving', swap_days: 'swapping',
+    dropping_day: 'dropping', offered: 'offered', waiting_paperwork: 'paperwork'
+  };
+  var WDS = [1, 2, 3, 4, 5];
 
-    // By band then name, as the cell panel's roll is - see sortByBand().
-    var ps = sortByBand(r.placements || [], function (p) { return p.age_band; }, placeName);
-    var childDays = 0, places = 0, unknownCap = false;
-    Object.keys(DAYS).forEach(function (wd) {
-      childDays += r.cells[wd].placed;
-      if (r.cells[wd].capacity === null) unknownCap = true;
-      else places += r.cells[wd].capacity;
+  var roomModal = new bootstrap.Modal('#room-modal');
+  var rvFilter = null;  // the chip pressed, or null for everybody
+  var rvAway = false;   // stepped aside for another dialog, and comes back when it shuts
+  var rvBack = null;    // the room a cell was opened FROM, for the panel's way back
+
+  function rvPill(kind, label, title) {
+    var k = RV_KIND[kind];
+    return '<span class="rv-pill ' + k.pill + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' +
+      (k.icon ? '<i class="fa-solid ' + k.icon + '" aria-hidden="true"></i>' : '') +
+      esc(label || k.label) + '</span>';
+  }
+
+  /**
+   * A CHILD'S AGE ON THE DAY THEIR STAFFING BAND IS READ (`age_bands.on`, today
+   * for the year running, 1 January for one being planned), so the age printed
+   * beside a chip and the green tone of the chip are about the same day.
+   * `age_months` on the row is NOT this: it is the age at 1 January, which is
+   * what sub-quotas test, and it put "1y 9m" on a child of two and a half.
+   * Plain arithmetic on the two strings - never new Date(), see app.js.
+   */
+  function ageOn(dob) {
+    var on = data && data.age_bands && data.age_bands.on;
+    if (!dob || !on) return null;
+    var b = dob.split('-').map(Number), o = on.split('/').map(Number);   // o = [d, m, y]
+    if (b.length !== 3 || o.length !== 3) return null;
+    var m = (o[2] - b[0]) * 12 + (o[1] - b[1]) - (o[0] < b[2] ? 1 : 0);
+    return m < 0 ? null : m;
+  }
+
+  /** The latest of a set of Y-m-d strings (they sort as text). */
+  function rvLatest(list) {
+    return list.reduce(function (a, b) { return !a || b > a ? b : a; }, null);
+  }
+  function rvEarliest(list) {
+    return list.reduce(function (a, b) { return !a || b < a ? b : a; }, null);
+  }
+
+  /**
+   * EVERYTHING ONE ROOM'S SHEET SAYS, worked out from the board on the page.
+   * Returns { roll, offered, kept, asked, progress } - rows, each carrying the
+   * tags its chips match, the label and detail lines, and one entry per weekday
+   * saying what that day's box is.
+   */
+  function roomSheet(r) {
+    // WHERE ELSE EACH CHILD IS, per weekday, off every other room's roll. A child
+    // split across two rooms is common (a Monday in Radiant Rainbows and a
+    // Tuesday and Thursday in Little Angels), and a row with three empty boxes
+    // reads as a part-time child when they are in the building all week.
+    var elsewhere = {};
+    data.rooms.forEach(function (o) {
+      if (o.id === r.id) return;
+      WDS.forEach(function (wd) {
+        ((o.cells[wd] || {}).children || []).forEach(function (ch) {
+          if (!ch.ks_id) return;
+          var m = elsewhere[ch.ks_id] = elsewhere[ch.ks_id] || {};
+          (m[wd] = m[wd] || []).push({ room: o, ch: ch });
+        });
+      });
     });
 
-    $('#cell-title').html(roomIcon(r.name) + esc(r.name + ' - everyone in ' + data.year));
-    $('#cell-subtitle').text(
-      ps.length + (ps.length === 1 ? ' child' : ' children') + ', ' + childDays +
-      (unknownCap ? '' : ' of ' + places) + ' place-days filled across the week');
+    // Kidsoft day requests (with any internal wish merged onto them) by family,
+    // per weekday. A child on the roll shows theirs in their own empty boxes;
+    // anybody else gets a row in "Asked for a day".
+    var asks = {};
+    WDS.forEach(function (wd) {
+      (r.cells[wd].requests || []).forEach(function (q) {
+        var k = q.kidsoft_child_id ? 'k' + q.kidsoft_child_id : 'n' + q.name;
+        (asks[k] = asks[k] || { q: q, days: {} }).days[wd] = q;
+      });
+    });
 
-    if (!ps.length) {
-      $('#cell-body').html('<p class="text-muted small">Nobody is on the ' + data.year +
-        ' board for this room.</p>');
-      return;
-    }
+    var out = { roll: [], offered: [], kept: [], asked: [], progress: [] };
+    var onRoll = {};
 
-    // A day heading opens that cell - the roster says who is in the room, the
-    // cell says what to do about the day, and moving between them should not
-    // mean shutting the panel and hunting for the square again.
-    var head = '<th class="rs-name">Child</th>' +
-      Object.keys(DAYS).map(function (wd) {
-        return '<th class="rs-day rs-open" data-room="' + r.id + '" data-wd="' + wd + '"' +
-          ' tabindex="0" role="button" title="' + esc('Open ' + DAYS[wd] + 's in ' + r.name) + '">' +
-          DAYS[wd] + '</th>';
-      }).join('') + '<th class="rs-day">Days</th>';
-
-    var holdless = 0;
-    var rows = ps.map(function (p) {
-      // waitlist / no_position rows are ON the board but hold no place, which is
-      // why the totals below them are lower than the ticks above. Faded and
-      // footnoted rather than hidden - they are a real part of the room's plan.
-      var holds = p.status !== 'waitlist' && p.status !== 'no_position';
-      if (!holds) holdless++;
-      // Same key the board uses for a child everywhere: 'k' + ChildID, or 'p' +
-      // our row for one pencilled in ahead of Kidsoft. Prefixed so the two can
-      // never collide - a derived child's `id` is null, which is what silently
-      // collapsed every child in a room into one entry once before.
+    sortByBand(r.placements || [], function (p) { return p.age_band; }, placeName).forEach(function (p) {
       var key  = placeKey(p.kidsoft_child_id, p.id);
+      var ks   = p.kidsoft_child_id;
+      onRoll[key] = true;
+      var name = placeName(p) || 'Unnamed';
       var wish = (r.wishes || {})[key] || null;
-      // The opposite fact on the same empty boxes: days the centre is keeping
-      // for this child while they are not booked on them. See _incl/day-holds.php.
       var hold = (r.holds  || {})[key] || null;
-      var name = ((p.child_first_name || '') + ' ' + (p.child_last_name || '')).trim() || 'This child';
+      var ask  = ks ? asks['k' + ks] || null : null;
+      if (ask) ask.used = true;
+      // Days whose place is genuinely going back on sale - the amber ones. A day
+      // given up whose cell an arrival already covers is not one.
+      var coming = endingDays(r, ks, p.days);
       var flags = [];
       if (p.is_sibling) flags.push('sibling');
       if (p.is_staff_child) flags.push('staff');
@@ -1853,278 +1943,572 @@
       if (p.has_behaviour_plan) flags.push('behaviour');
       if (p.has_individual_plan) flags.push('individual');
 
-      return '<tr' + (holds ? '' : ' class="rs-noplace"') + '>' +
-        '<td class="rs-name"><span class="place-chip st-' + esc(p.status) + bandClass(p) +
-        '" data-key="' + esc(key) + '" title="' + esc(chipTitle(flags, p.status, p)) + '">' +
-        esc(((p.child_first_name || '') + ' ' + (p.child_last_name || '')).trim() || 'Unnamed') +
-        flagIcons(flags) + '</span></td>' +
-        // THE EMPTY BOXES ARE THE FEATURE. A parent rings and asks for a day
-        // this child does not attend; Kidsoft has nowhere to record that (its
-        // waitlist is for permanent positions and its waitlisted bookings are
-        // per-date portal requests), so it lands here. The strip already shows
-        // exactly which days those are, which makes clicking one the whole
-        // interaction - no picker, no second screen.
-        //
-        // This is NOT a call list, and the distinction is the no-upselling
-        // policy: it records something a family ASKED for. Nothing here ranks
-        // children by how easy they would be to sell a day to.
-        Object.keys(DAYS).map(function (wd) {
-          if (p.days.indexOf(+wd) !== -1) {
-            return '<td class="rs-day rs-on"><i class="fa-solid fa-check"></i>' +
-              '<span class="visually-hidden">' + DAYS[wd] + '</span></td>';
+      var days = {}, ending = [], starting = [], kinds = {}, reason = null, toRoom = null;
+      WDS.forEach(function (wd) {
+        if (p.days.indexOf(wd) !== -1) {
+          var ch = null;
+          (r.cells[wd].children || []).forEach(function (x) {
+            if (placeKey(x.ks_id, x.id) === key) ch = x;
+          });
+          var d = { on: true, from: ch ? ch.from : null, to: ch ? ch.to : null,
+                    ends: ch ? ch.ends || null : null, coming: coming.indexOf(wd) !== -1 };
+          if (d.to) ending.push(wd);
+          if (d.from) starting.push(wd);
+          if (d.ends) {
+            kinds[d.ends.kind] = true;
+            if (d.ends.reason) reason = d.ends.reason;
+            if (d.ends.kind === 'moving' && d.ends.room) toRoom = d.ends.room;
           }
-          // A HELD DAY WINS THE BOX, and the three states cannot overlap: the
-          // API refuses a day that is both waited for and held, because they are
-          // opposite claims on one cell and would be counted in two directions.
-          var holding = hold && hold.days.indexOf(+wd) !== -1;
-          var wishing = !holding && wish && wish.days.indexOf(+wd) !== -1;
-          var mark = '.', said = 'Record that ' + name + ' is waiting for a ' + DAYS[wd] +
-            ', or that a ' + DAYS[wd] + ' is being held for them';
-          if (holding) {
-            mark = '<i class="fa-solid fa-lock"></i><span class="visually-hidden">' +
-              DAYS[wd] + ' held for ' + name + '</span>';
-            said = DAYS[wd] + ' is being held for ' + name +
-              (hold.reason ? ' - ' + hold.reason : '') +
-              ' - since ' + hold.held_from_display + '. Nobody else can be offered it.';
-          } else if (wishing) {
-            mark = '<i class="fa-solid fa-hourglass-half"></i><span class="visually-hidden">waiting for ' +
-              DAYS[wd] + '</span>';
-            said = name + ' is waiting for a ' + DAYS[wd] + (wish.note ? ' - ' + wish.note : '');
-          }
-          return '<td class="rs-day rs-off' + (wishing ? ' rs-wish' : '') +
-            (holding ? ' rs-hold' : '') +
-            ' rs-wishable" data-key="' + esc(key) + '" data-wd="' + wd +
-            '" tabindex="0" role="button" title="' + esc(said) + '">' + mark + '</td>';
-        }).join('') +
-        '<td class="rs-day text-muted">' + p.days.length + '</td></tr>';
-    }).join('');
+          days[wd] = d;
+        } else {
+          days[wd] = {
+            on: false,
+            hold: hold && hold.days.indexOf(wd) !== -1 ? hold : null,
+            wish: wish && wish.days.indexOf(wd) !== -1 ? wish : null,
+            ask: ask && ask.days[wd] ? ask.days[wd] : null,
+            other: ks && elsewhere[ks] ? (elsewhere[ks][wd] || []) : []
+          };
+        }
+      });
 
-    // THE FAMILIES THIS ROOM HAS OFFERED A PLACE TO, under the roll and in the
-    // roll's own shape (Broc, 9 Sep 2026). They are not in `r.placements` --
-    // an offer is not a placement until the family says yes - so without this
-    // the sheet showed a room whose days were sold to nobody visible, the same
-    // gap the cell panel's block 1a closed.
-    //
-    // ONE ROW PER OFFER. The room's five cells each carry the same family under
-    // `promised_children`, so they are gathered back into one row keyed on
-    // `offer_id` - a real identity, unlike the null `id` on a derived child.
-    var offeredBy = {}, offered = [];
-    Object.keys(DAYS).forEach(function (wd) {
+      // MOVING IN: they start here later, and the room they are in now has
+      // them leaving it as a move. Preferably the move that names THIS room.
+      var fromRoom = null;
+      if (starting.length && ks && elsewhere[ks]) {
+        WDS.forEach(function (wd) {
+          (elsewhere[ks][wd] || []).forEach(function (e) {
+            if (!e.ch.ends || e.ch.ends.kind !== 'moving') return;
+            if (!fromRoom || e.ch.ends.room === r.name) fromRoom = e.room;
+          });
+        });
+      }
+
+      var holdless = p.status === 'waitlist' || p.status === 'no_position';
+      var lastDay  = rvLatest(ending.map(function (wd) { return days[wd].to; }));
+      var firstDay = rvEarliest(starting.map(function (wd) { return days[wd].from; }));
+      var row = { type: 'roll', p: p, key: key, name: name, days: days, flags: flags,
+                  tags: ['enrolled'], lines: [], count: p.days.length, faded: holdless };
+
+      // ONE HEADLINE PER ROW, in the order the question matters: a child leaving
+      // the service outranks the detail of which days, a move outranks a start.
+      var kind = null, det = '';
+      if (kinds.leaving) {
+        kind = 'leaving';
+        det = 'Last day ' + fmtDate(lastDay) + (reason ? ' (' + esc(reason) + ')' : '');
+      } else if (kinds.moving) {
+        kind = 'moving';
+        var allMove = ending.length === p.days.length;
+        det = (allMove ? 'To ' : dayList(ending) + ' to ') + esc(toRoom || 'another room') +
+          ', last day here ' + fmtDate(lastDay);
+      } else if (fromRoom) {
+        kind = 'moving';
+        det = 'From ' + esc(fromRoom.name) + ', starts here ' + fmtDate(firstDay);
+      } else if (kinds.dropping && starting.length) {
+        kind = 'swapping';
+        det = dayList(ending) + ' until ' + fmtDate(lastDay) + ', then ' + dayList(starting) +
+          ' from ' + fmtDate(firstDay);
+      } else if (kinds.dropping) {
+        kind = 'dropping';
+        var keeps = p.days.filter(function (wd) { return ending.indexOf(wd) === -1; });
+        det = 'Gives up ' + dayList(ending) + ', last day ' + fmtDate(lastDay) +
+          (keeps.length ? '; keeps ' + dayList(keeps) : '');
+      } else if (starting.length) {
+        kind = 'starting';
+        det = starting.length === p.days.length
+          ? 'Starts ' + fmtDate(firstDay)
+          : 'Adds ' + dayList(starting) + ' from ' + fmtDate(firstDay);
+      } else if (RV_STATUS_KIND[p.status]) {
+        kind = RV_STATUS_KIND[p.status];
+      }
+      if (holdless) {
+        row.lines.push('<span class="rv-pill st-' + esc(p.status) + '">' +
+          esc(STATUS[p.status] || p.status) + '</span>' +
+          '<span class="rv-det">On the board, not holding a place</span>');
+      }
+      if (kind) {
+        row.tags.push(kind);
+        // A status typed on the editor says so in its own words.
+        var said = !det && RV_STATUS_KIND[p.status] ? STATUS[p.status] : null;
+        row.lines.push(rvPill(kind, kind === 'starting' && starting.length !== p.days.length
+          ? 'Adding days' : said) + (det ? '<span class="rv-det">' + det + '</span>' : ''));
+      }
+      // THE OTHER TWO FACTS AN EMPTY BOX CAN CARRY, as lines of their own: a day
+      // the centre is keeping for them, and a day they are waiting for.
+      var heldDays = WDS.filter(function (wd) { return days[wd].hold; });
+      if (heldDays.length) {
+        row.tags.push('held');
+        row.lines.push(rvPill('held', 'Held') + '<span class="rv-det">' + dayList(heldDays) +
+          (hold.reason ? ', ' + esc(hold.reason) : '') + ', since ' + esc(hold.held_from_display) +
+          '</span>');
+      }
+      // TWO SOURCES, SAID APART: a day asked of Kidsoft carries its dates, a day
+      // noted here carries what the parent said - and a note about Thursdays
+      // must not read as though it were about the Tuesday beside it.
+      var askDays  = WDS.filter(function (wd) { return days[wd].ask && !days[wd].wish; });
+      var wishDays = WDS.filter(function (wd) { return days[wd].wish; });
+      if (askDays.length || wishDays.length) {
+        row.tags.push('asked');
+        var said2 = [];
+        if (askDays.length) {
+          var q0 = days[askDays[0]].ask;
+          said2.push(dayList(askDays) + ' asked in Kidsoft' +
+            (q0.requested_at ? ' ' + fmtDate(q0.requested_at) : ''));
+        }
+        if (wishDays.length) {
+          said2.push(dayList(wishDays) + (wish.note ? ': ' + esc(wish.note) : ' noted here'));
+        }
+        row.lines.push(rvPill('asked', 'Waiting for a day') + '<span class="rv-det">' +
+          said2.join('; ') + '</span>');
+      }
+      out.roll.push(row);
+    });
+
+    // OFFERED, NOT ENROLLED YET. One row per offer, its days gathered back off
+    // the five cells. A Kidsoft offer whose form is in is the workbook's
+    // "waiting for paperwork": the family has said yes and the next move is ours.
+    var seen = {};
+    WDS.forEach(function (wd) {
       (r.cells[wd].promised_children || []).forEach(function (o) {
-        if (offeredBy[o.offer_id]) return;
-        offeredBy[o.offer_id] = true;
-        offered.push(o);
+        if (seen[o.offer_id]) return;
+        seen[o.offer_id] = true;
+        var answered = o.kidsoft && o.state !== 'Offered in Kidsoft';
+        var kind = answered ? 'paperwork' : 'offered';
+        var det = [];
+        if (o.expires) det.push('expires ' + esc(o.expires));
+        if (o.starts) det.push('starts ' + esc(o.starts));
+        if (!o.kidsoft) det.push('offered here');
+        out.offered.push({ type: 'offer', o: o, name: o.name, tags: [kind], count: o.days.length,
+          dayset: o.days, mark: answered ? 'paperwork' : 'offer',
+          lines: [rvPill(kind, answered ? o.state : 'Offered') +
+            (det.length ? '<span class="rv-det">' + det.join(', ') + '</span>' : '')] });
       });
     });
-    offered.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
-    var offeredRows = offered.map(function (o) {
-      // A BOOKMARK, NOT A TICK. A tick on this sheet means the child attends
-      // that day and none of these do yet; the offer can still lapse. The empty
-      // days are not wishable either - a wish is recorded against a placement
-      // and these families have none.
-      return '<tr class="rs-offered">' +
-        '<td class="rs-name"><button type="button" class="cp-name cp-open" data-wl="' +
-          o.waitlist_id + '" title="Application and contact history">' + esc(o.name) +
-          '</button>' +
-          '<span class="rs-sub">' + (o.kidsoft ? offerWhen(o) : 'offered, ' + offerWhen(o)) + '</span></td>' +
-        Object.keys(DAYS).map(function (wd) {
-          if (o.days.indexOf(+wd) === -1) return '<td class="rs-day rs-off">.</td>';
-          return '<td class="rs-day rs-held" title="' +
-            esc('Offered a ' + DAYS[wd] + ', waiting for an answer') + '">' +
-            '<i class="fa-solid fa-bookmark"></i><span class="visually-hidden">' +
-            DAYS[wd] + ' held by an offer</span></td>';
-        }).join('') +
-        '<td class="rs-day text-muted">' + o.days.length + '</td></tr>';
-    }).join('');
-
-    // CHILDREN THE BOARD CANNOT SHOW, WHOSE PLACE IS BEING HELD ANYWAY.
-    //
-    // A child REMOVED FROM CARE pending an improvement in behaviour has no
-    // bookings at all, so the derived board shows them in no room - and the
-    // place being kept for them had no visible owner on the sheet. Somebody
-    // reading "14/15, 1 held" had nowhere to find out who the 1 was.
-    //
-    // GATED ON AN OPEN HOLD, never on "has an annotation and no bookings". An
-    // annotation row outlives a child's time in a room (they move up, the row
-    // stays), so the looser test would resurrect children into rooms they left
-    // years ago - the stale-copy failure this app deleted 870 rows to end. A
-    // hold is a live, deliberate statement that ends when the booking returns.
-    //
-    // They are NOT added to r.placements, so the child count above, the Placed
-    // totals below and board_trading() all read exactly what they read before.
-    var onRoll = {};
-    ps.forEach(function (p) { onRoll[placeKey(p.kidsoft_child_id, p.id)] = true; });
-    var heldSeen = {}, heldOut = [];
-    Object.keys(DAYS).forEach(function (wd) {
+    // PLACES KEPT: a child in another room this year whose days here are held
+    // against their re-enrolment, and a child enrolled here whose day is held
+    // while they are not booked on it - including one removed from care, who is
+    // on no roll at all. Neither is on `r.placements`, which is why each needs
+    // its own row: "0 free" over a roll that does not fill it sends the reader
+    // hunting otherwise.
+    var reBy = {};
+    WDS.forEach(function (wd) {
+      (r.cells[wd].held_children || []).forEach(function (h) {
+        var k = h.ks_id || h.name;
+        if (!reBy[k]) {
+          reBy[k] = { type: 'reenrol', h: h, name: h.name, ks: h.ks_id, tags: ['reenrol'],
+                      dayset: [], mark: 'reenrol' };
+          out.kept.push(reBy[k]);
+        }
+        reBy[k].dayset.push(wd);
+      });
+    });
+    out.kept.forEach(function (x) {
+      var h = x.h, here = h.from_room === r.name;
+      x.count = x.dayset.length;
+      x.lines = [rvPill('reenrol', 'Waiting for re-enrolment') + '<span class="rv-det">' +
+        (here ? 'In this room now' : 'In ' + esc(h.from_room) + ' now') +
+        ', held to ' + esc(h.hold_until) + '</span>' +
+        (h.chase_due ? '<span class="badge text-bg-danger">due a call</span>' : '') +
+        (h.school_age ? '<span class="badge text-bg-light border">school age</span>' : '')];
+      if (!here) x.tags.push('moving');
+    });
+    var heldSeen = {};
+    WDS.forEach(function (wd) {
       (r.cells[wd].reserved_children || []).forEach(function (x) {
-        // The one key shape this app uses for a child, built by the one helper -
-        // two shapes for one child is the null-key trap that collapsed every
-        // child in a room into a single entry once before.
         var k = placeKey(x.ks_id, x.placement_id);
+        // On the roll already: their padlock is in their own row.
         if (heldSeen[k] || onRoll[k]) return;
         heldSeen[k] = true;
-        heldOut.push(x);
+        out.kept.push({ type: 'heldout', x: x, name: x.name, ks: x.ks_id, tags: ['held'],
+          dayset: x.held_days || [], mark: 'hold', count: 0,
+          lines: [rvPill('held', 'Place held') + '<span class="rv-det">' +
+            esc(x.reason || 'Not booked') + ', since ' + esc(x.held_from_display) + '</span>'] });
       });
     });
-    heldOut.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
-    var heldOutRows = heldOut.map(function (x) {
-      // NOT A place-chip. A chip is a button that opens the placement editor
-      // through findPlacementByKey(), which searches r.placements - and these
-      // children are deliberately not in it, so the click would silently do
-      // nothing. A control that fails is worse than no control. childLink()
-      // opens the child's own dialog by ChildID instead, which needs no board
-      // row; a provisional child (no ChildID) stays a plain name.
-      return '<tr class="rs-heldout">' +
-        '<td class="rs-name">' + childLink(x.ks_id, x.name) +
-          '<span class="rs-sub">' + esc(x.reason || 'place held') +
-          ' - held since ' + esc(x.held_from_display) + '</span></td>' +
-        Object.keys(DAYS).map(function (wd) {
-          if ((x.held_days || []).indexOf(+wd) === -1) return '<td class="rs-day rs-off">.</td>';
-          return '<td class="rs-day rs-hold" title="' +
-            esc(DAYS[wd] + ' is being held for ' + x.name + '. Nobody else can be offered it.') +
-            '"><i class="fa-solid fa-lock"></i><span class="visually-hidden">' +
-            DAYS[wd] + ' held</span></td>';
-        }).join('') +
-        // NOT the held count: this column is days ATTENDED, and they attend none.
-        '<td class="rs-day text-muted">0</td></tr>';
-    }).join('');
+    // ASKED FOR A DAY, and not on this room's roll - a child in another room, or
+    // one Kidsoft knows and the board does not show here.
+    Object.keys(asks).forEach(function (k) {
+      var a = asks[k];
+      if (a.used) return;
+      var dayset = Object.keys(a.days).map(Number);
+      var q = a.q;
+      var src = q.source === 'internal' ? 'Noted here' : (q.status || 'Kidsoft');
+      out.asked.push({ type: 'asked', q: q, name: q.name, ks: q.kidsoft_child_id, tags: ['asked'],
+        dayset: dayset, mark: 'ask', count: dayset.length,
+        lines: [rvPill('asked') + '<span class="rv-det">' + esc(src) +
+          (q.requested_at ? ', asked ' + fmtDate(q.requested_at) : '') + '</span>'] });
+    });
 
-    // The grid's own figures for this room, printed under the ticks so the two
-    // reconcile in one glance - and so an over-capacity day is visible from
-    // here without going back out to the grid.
-    var totals = '<tr class="grid-totals"><th>Placed</th>' +
-      Object.keys(DAYS).map(function (wd) {
-        var c = r.cells[wd];
-        // "14/15 full" IS A WORD AND A FRACTION CONTRADICTING EACH OTHER, and
-        // the fraction is the one people stop trusting - the same fault heat()
-        // documents on the grid, which this row reprints. A place kept by an
-        // offer, a re-enrolment hold or a held day is neither placed nor free,
-        // so without this the reader is left one short with no explanation.
-        var kept = (c.promised || 0) + (c.held || 0) + (c.reserved || 0);
-        var note = c.capacity === null ? '<span class="text-muted">no capacity</span>'
-          : (c.over ? '<span class="text-danger">' + (c.placed - c.capacity) + ' over</span>'
-            : (c.free ? '<span class="text-danger">' + c.free + ' free</span>'
-              : (kept ? '<span class="text-success">full</span><span class="text-muted">, ' +
-                  kept + ' held</span>'
-                : '<span class="text-success">full</span>')));
-        return '<td class="rs-day"><div class="fw-semibold">' + c.placed +
-          (c.capacity === null ? '' : '<span class="text-muted fw-normal">/' + c.capacity + '</span>') +
-          '</div><div class="rs-note">' + note + '</div></td>';
-      }).join('') +
-      '<td class="rs-day fw-semibold">' + childDays + '</td></tr>';
-
-    // FAMILIES PART-WAY THROUGH ENROLLING FOR DAYS IN THIS ROOM (14 Oct 2026).
-    // Asked as: "If someone is In progress can that be visible in the Placement
-    // board?" The cell panel has listed them since August; the roster, which is
-    // what a click on a room opens, did not - so a room could read as having
-    // places free while two colleagues were ringing families about them.
-    //
-    // Gathered across the five cells the way the offered rows are, one row per
-    // item, the days being the cells it appears in. work_by_cell() has already
-    // left out anything at Offered or past (those are the bookmark rows above,
-    // or on the roll), so nobody is listed twice. An item with no room cannot
-    // be put in a room and is not here - it is counted on the In progress tile.
-    //
-    // NOTHING IS HELD for these families, which is why the mark is not the
-    // bookmark and the row is not in the totals. The name opens their enrolment.
-    var progBy = {}, progress = [];
-    Object.keys(DAYS).forEach(function (wd) {
+    // PART-WAY THROUGH ENROLLING. Nothing is held for them, so the free figures
+    // above still count these places - which is exactly why they are listed:
+    // a room can read as having places free while two colleagues are ringing
+    // families about them. work_by_cell() leaves out Offered and beyond.
+    var progBy = {};
+    WDS.forEach(function (wd) {
       (r.cells[wd].in_progress || []).forEach(function (w) {
         if (!progBy[w.id]) {
-          progBy[w.id] = $.extend({ days: [] }, w);
-          progress.push(progBy[w.id]);
+          progBy[w.id] = { type: 'progress', w: w, name: w.child_name, tags: ['progress'],
+                           dayset: [], mark: 'prog' };
+          out.progress.push(progBy[w.id]);
         }
-        progBy[w.id].days.push(+wd);
+        progBy[w.id].dayset.push(wd);
       });
     });
-    progress.sort(function (a, b) { return a.child_name.localeCompare(b.child_name); });
+    out.progress.forEach(function (x) {
+      var w = x.w;
+      x.count = x.dayset.length;
+      x.lines = [rvPill('progress', w.stage_label) + '<span class="rv-det">' +
+        (w.owner_email ? esc(staffName(w.owner_email)) : 'Nobody yet') +
+        (w.idle_days > 6 ? ', untouched ' + w.idle_days + ' days' : '') + '</span>'];
+    });
 
-    var progressRows = progress.map(function (w) {
-      return '<tr class="rs-progress">' +
-        '<td class="rs-name"><button type="button" class="cp-name work-open" data-id="' + w.id +
-          '" title="Open their enrolment">' + esc(w.child_name) + '</button>' +
-          '<span class="rs-sub">' + esc(w.stage_label) +
-          (w.owner_email ? ', ' + esc(staffName(w.owner_email)) : '') + '</span></td>' +
-        Object.keys(DAYS).map(function (wd) {
-          if (w.days.indexOf(+wd) === -1) return '<td class="rs-day rs-off">.</td>';
-          return '<td class="rs-day rs-prog" title="' +
-            esc(w.child_name + ' is part-way through enrolling for a ' + DAYS[wd] +
-                '. Nothing is held for them yet.') + '">' +
-            '<i class="fa-solid fa-list-check"></i><span class="visually-hidden">' +
-            DAYS[wd] + ' being enrolled for</span></td>';
-        }).join('') +
-        '<td class="rs-day text-muted">' + w.days.length + '</td></tr>';
+    function byName(a, b) { return a.name.localeCompare(b.name); }
+    out.offered.sort(byName); out.asked.sort(byName); out.progress.sort(byName);
+    out.kept.sort(function (a, b) { return (a.type < b.type ? -1 : a.type > b.type ? 1 : 0) || byName(a, b); });
+    return out;
+  }
+
+  /** One weekday's box on a roll row. */
+  function rvRollDay(row, wd) {
+    var d = row.days[wd], name = row.name;
+    if (d.on) {
+      var cls = 'rv-on', ico = 'fa-check', txt = '', said = name + ' attends on ' + DAYS_LONG[wd] + 's';
+      if (d.from && d.to) {
+        txt = fmtDate(d.from) + ' to ' + fmtDate(d.to);
+        said += ' from ' + fmtDate(d.from) + ' to ' + fmtDate(d.to);
+      } else if (d.from) {
+        cls = 'rv-from'; ico = 'fa-right-to-bracket'; txt = 'from ' + fmtDate(d.from);
+        said += ' from ' + fmtDate(d.from);
+      }
+      if (d.to) {
+        var e = d.ends, what = !e ? 'last day'
+          : e.kind === 'leaving' ? 'leaving care, last day'
+          : e.kind === 'moving'  ? 'moving to ' + (e.room || 'another room') + ', last day here'
+          : 'giving up this day, last day';
+        if (!d.from) txt = 'to ' + fmtDate(d.to);
+        said = name + ' - ' + DAYS_LONG[wd] + ': ' + what + ' ' + fmtDate(d.to);
+        // AMBER ONLY WHERE THE PLACE IS GOING BACK ON SALE - the board's "+1
+        // free" colour. A day an arrival has already re-filled, or one that ends
+        // in the last week of the year, keeps its green and says so in words.
+        if (d.coming) {
+          cls = 'rv-end';
+          ico = e && e.kind === 'moving' ? 'fa-arrows-turn-right'
+              : e && e.kind === 'dropping' ? 'fa-calendar-minus' : 'fa-right-from-bracket';
+          said += '. The place comes free after that.';
+        } else {
+          ico = 'fa-check';
+          said += '. Not a place coming free - it is already re-filled, or the year ends first.';
+        }
+      }
+      return '<td class="rv-d"><span class="rv-b ' + cls + '" title="' + esc(said) + '">' +
+        '<i class="fa-solid ' + ico + '" aria-hidden="true"></i>' +
+        (txt ? '<span class="rv-bt">' + txt + '</span>' : '<span class="visually-hidden">attends</span>') +
+        '</span></td>';
+    }
+
+    // AN EMPTY DAY IS A CONTROL: click it to record that the family is waiting
+    // for it, or that it is being held for them. Kidsoft has nowhere to keep
+    // either - see openWish(). A held day wins the box; the API refuses a day
+    // that is both, because they are opposite claims on one place.
+    var inner, title;
+    if (d.hold) {
+      inner = '<span class="rv-b rv-hold"><i class="fa-solid fa-lock" aria-hidden="true"></i>' +
+        '<span class="rv-bt">held</span></span>';
+      title = DAYS_LONG[wd] + ' is being held for ' + name +
+        (d.hold.reason ? ' - ' + d.hold.reason : '') + ', since ' + d.hold.held_from_display +
+        '. Nobody else can be offered it.';
+    } else if (d.wish || d.ask) {
+      var q = d.ask;
+      var dates = q && q.dates && q.dates.length > 1 ? q.dates.length + ' dates from ' + fmtDate(q.from)
+                : q && q.dates && q.dates.length ? fmtDate(q.dates[0]) : '';
+      inner = '<span class="rv-b rv-want"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i>' +
+        '<span class="rv-bt">waiting</span></span>';
+      title = name + ' is waiting for a ' + DAYS_LONG[wd] +
+        (d.wish && d.wish.note ? ' - ' + d.wish.note : '') +
+        (q && q.source !== 'internal' ? ' (asked Kidsoft' + (dates ? ' for ' + dates : '') + ')' : '');
+    } else if (d.other.length) {
+      // In another room that day. Not a control that says anything new, so the
+      // box keeps the "record a wish" click like any other empty day.
+      var o = d.other[0].room;
+      inner = '<span class="rv-b rv-else">' + roomIcon(o.name) + '<span class="rv-bt">' +
+        esc(o.name) + '</span></span>';
+      title = name + ' is in ' + o.name + ' on ' + DAYS_LONG[wd] + 's. ' +
+        'Click to record a wish or a hold for this room.';
+    } else {
+      inner = '<span class="rv-b rv-off"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>';
+      title = 'Record that ' + name + ' is waiting for a ' + DAYS_LONG[wd] +
+        ', or that a ' + DAYS_LONG[wd] + ' is being held for them';
+    }
+    return '<td class="rv-d rv-pick" data-key="' + esc(row.key) + '" data-wd="' + wd +
+      '" tabindex="0" role="button" title="' + esc(title) + '">' + inner + '</td>';
+  }
+
+  /** One weekday's box on a row for a family who is not on the roll. */
+  var RV_MARK = {
+    offer:     ['rv-offer', 'fa-bookmark',        'offered',  ' is offered a %, waiting for the family'],
+    paperwork: ['rv-offer', 'fa-file-signature',  'form in',  ' has accepted a % and the paperwork is with the centre'],
+    reenrol:   ['rv-offer', 'fa-bookmark',        'kept',     '\'s % is held until they answer re-enrolment'],
+    hold:      ['rv-hold',  'fa-lock',            'held',     '\'s % is being held. Nobody else can be offered it'],
+    ask:       ['rv-want',  'fa-hourglass-half',  'asked',    ' has asked for a %'],
+    prog:      ['rv-prog',  'fa-list-check',      'enrolling', ' is part-way through enrolling for a %. Nothing is held yet']
+  };
+  function rvOtherDay(row, wd) {
+    if (row.dayset.indexOf(wd) === -1) return '<td class="rv-d"></td>';
+    var m = RV_MARK[row.mark];
+    return '<td class="rv-d"><span class="rv-b ' + m[0] + '" title="' +
+      esc(row.name + m[3].replace('%', DAYS_LONG[wd])) + '">' +
+      '<i class="fa-solid ' + m[1] + '" aria-hidden="true"></i><span class="rv-bt">' + m[2] +
+      '</span></span></td>';
+  }
+
+  /** The name cell: who, how old, and what is happening to them. */
+  function rvNameCell(row) {
+    var who;
+    if (row.type === 'roll') {
+      var p = row.p;
+      who = '<span class="place-chip st-' + esc(p.status) + bandClass(p) + '" data-key="' +
+        esc(row.key) + '" tabindex="0" role="button" title="' +
+        esc(chipTitle(row.flags, p.status, p)) + '">' + esc(row.name) + flagIcons(row.flags) +
+        '</span>' +
+        (ageOn(p.child_dob) !== null
+          ? '<span class="rv-age" title="' + esc('Born ' + fmtDate(p.child_dob) + '; ' +
+              ageLabel(ageOn(p.child_dob)) + ' on ' + data.age_bands.on) + '">' +
+            esc(ageLabel(ageOn(p.child_dob))) + '</span>' : '');
+    } else if (row.type === 'offer') {
+      who = '<button type="button" class="cp-name cp-open" data-wl="' + row.o.waitlist_id +
+        '" title="Application and contact history">' + esc(row.name) + '</button>';
+    } else if (row.type === 'progress') {
+      who = '<button type="button" class="cp-name work-open" data-id="' + row.w.id +
+        '" title="Open their enrolment">' + esc(row.name) + '</button>';
+    } else {
+      who = childLink(row.ks, row.name);
+    }
+    return '<td class="rv-name"><div class="rv-who">' + who + '</div>' +
+      (row.lines.length ? '<div class="rv-what">' + row.lines.join('</div><div class="rv-what">') + '</div>' : '') +
+      '</td>';
+  }
+
+  /**
+   * One weekday's column head: the grid cell's own figures, and a bar of one box
+   * per place - green placed, grey kept for a family by an offer or a
+   * re-enrolment, amber held, empty free, red over. The place-day is the unit of
+   * this app, so it is drawn as one.
+   */
+  function rvDayHead(r, wd) {
+    var c = r.cells[wd];
+    var kept = (c.promised || 0) + (c.held || 0), held = c.reserved || 0;
+    var bar = '', fig, state, tip = [];
+    if (c.capacity === null) {
+      fig = '<span class="rv-dfig">' + c.placed + '</span>';
+      state = '<span class="text-muted">no capacity</span>';
+      tip.push(c.placed + ' placed, no capacity recorded');
+    } else {
+      fig = '<span class="rv-dfig">' + c.placed + '<small>/' + c.capacity + '</small></span>';
+      var n = Math.max(c.capacity, c.placed + kept + held), segs = [];
+      for (var i = 0; i < n; i++) {
+        var s = i < c.placed ? 'b-on' : i < c.placed + kept ? 'b-kept'
+              : i < c.placed + kept + held ? 'b-held' : '';
+        if (i >= c.capacity) s = 'b-over';
+        segs.push('<i' + (s ? ' class="' + s + '"' : '') + '></i>');
+      }
+      bar = '<div class="rv-bar' + (n > 30 ? ' rv-bar-dense' : '') + '" aria-hidden="true">' +
+        segs.join('') + '</div>';
+      state = c.over ? '<span class="rv-st-over">' + (c.placed - c.capacity) + ' over</span>'
+            : c.free ? '<span class="rv-st-free">' + c.free + ' free</span>'
+            : '<span class="rv-st-full">Full</span>';
+      tip.push(c.placed + ' of ' + c.capacity + ' placed');
+      if (c.free) tip.push(c.free + ' free');
+    }
+    if (c.promised) tip.push(c.promised + ' held by an offer');
+    if (c.held) tip.push(c.held + ' held for re-enrolment');
+    if (held) tip.push(held + ' held for a child not booked on the day');
+    // In the board's own words for each: an offer holds a place, a re-enrolment
+    // or a held day holds one. "Kept" for both read as a third kind of thing.
+    var tags = '';
+    if (c.promised) tags += '<span class="rv-kept">' + c.promised + ' offered</span>';
+    if ((c.held || 0) + held) tags += '<span class="rv-kept">' + ((c.held || 0) + held) + ' held</span>';
+    if (c.coming_free) {
+      tags += '<span class="rv-cf">+' + c.coming_free + (c.free_from ? ' ' + fmtMonth(c.free_from.slice(0, 7)) : '') + '</span>';
+      tip.push(c.coming_free + ' coming free' + (c.free_from ? ' from ' + fmtDate(c.free_from) : ''));
+    }
+    if (c.in_progress_n) {
+      tags += '<span class="rv-ip"><i class="cell-prog" aria-hidden="true"></i>' + c.in_progress_n + '</span>';
+      tip.push(c.in_progress_n + ' famil' + (c.in_progress_n === 1 ? 'y' : 'ies') + ' part-way through enrolling');
+    }
+    if (c.eligible_count && c.free > 0) tip.push(c.eligible_count + ' on the waitlist could take this day');
+    return '<th class="rv-dh" data-wd="' + wd + '" tabindex="0" role="button" title="' +
+      esc(DAYS_LONG[wd] + 's: ' + tip.join(', ') + '.\nOpen the day for the shortlist and actions.') + '">' +
+      '<div class="rv-dh-top"><span class="rv-dn">' + DAYS[wd] + '</span>' + fig + '</div>' + bar +
+      '<div class="rv-dh-sub">' + state + tags + '</div></th>';
+  }
+
+  function rvSection(label, rows, kind) {
+    if (!rows.length) return '';
+    return '<tbody class="rv-group" data-kind="' + kind + '"><tr class="rv-sec"><th colspan="7">' +
+      label + ' <span class="rv-n">' + rows.length + '</span></th></tr>' +
+      rows.map(function (row) {
+        return '<tr class="rv-row' + (row.faded ? ' rv-faded' : '') + '" data-tags="' +
+          esc(row.tags.join(' ')) + '">' + rvNameCell(row) +
+          WDS.map(function (wd) { return row.type === 'roll' ? rvRollDay(row, wd) : rvOtherDay(row, wd); }).join('') +
+          '<td class="rv-n">' + row.count + '</td></tr>';
+      }).join('') + '</tbody>';
+  }
+
+  function renderRoom() {
+    if (!openRoom) return;
+    var r = room(openRoom);
+    if (!r) { roomModal.hide(); return; }
+    var s = roomSheet(r);
+    var all = s.roll.concat(s.offered, s.kept, s.asked, s.progress);
+
+    // --- Heading: the room, and what it is -------------------------------------
+    var centre = '';
+    (data.centres || []).forEach(function (c) { if (c.id === CENTRE) centre = c.name; });
+    var bits = [centre, String(data.year)];
+    if (r.min_age_months !== null || r.max_age_months !== null) {
+      bits.push('Ages ' + (r.min_age_months === null ? '0' : r.min_age_months) + '-' +
+        (r.max_age_months === null ? '+' : r.max_age_months) + ' months');
+    }
+    if (r.capacity_max !== null && r.capacity_max !== undefined) {
+      bits.push((r.capacity_min !== null && r.capacity_min !== r.capacity_max
+        ? r.capacity_min + '-' + r.capacity_max : r.capacity_max) + ' places a day');
+    }
+    $('#rv-title').html(roomIcon(r.name) + esc(r.name));
+    $('#rv-subtitle').html(bits.filter(Boolean).map(function (b) {
+      return '<span>' + esc(b) + '</span>';
+    }).join('') + (r.linked ? '' : '<span class="text-danger">Not linked to Kidsoft</span>'));
+    var i = data.rooms.indexOf(r), n = data.rooms.length;
+    var prev = data.rooms[(i - 1 + n) % n], next = data.rooms[(i + 1) % n];
+    $('#room-modal .rv-step[data-step="-1"]').attr('title', 'Previous room: ' + prev.name);
+    $('#room-modal .rv-step[data-step="1"]').attr('title', 'Next room: ' + next.name);
+    $('#room-modal .rv-steps').toggleClass('d-none', n < 2);
+
+    // --- The week in figures, and the legend that filters ------------------------
+    var placed = 0, cap = 0, unknown = false, free = 0, coming = 0, firstFree = null;
+    WDS.forEach(function (wd) {
+      var c = r.cells[wd];
+      placed += c.placed;
+      free += c.free || 0;
+      coming += c.coming_free || 0;
+      if (c.coming_free && c.free_from && (!firstFree || c.free_from < firstFree)) firstFree = c.free_from;
+      if (c.capacity === null) unknown = true; else cap += c.capacity;
+    });
+    var figs = '<div class="rv-figs">' +
+      '<span class="rv-fig"><b>' + s.roll.length + '</b> ' + (s.roll.length === 1 ? 'child' : 'children') + '</span>' +
+      '<span class="rv-fig"><b>' + placed + '</b>' + (unknown ? '' : '<small>/' + cap + '</small>') +
+        ' place-days filled</span>' +
+      (unknown ? '' : '<span class="rv-fig ' + (free ? 'rv-fig-free' : 'rv-fig-full') + '"><b>' + free +
+        '</b> free</span>') +
+      (coming ? '<span class="rv-fig rv-fig-cf" title="' + esc('The first from ' + fmtDate(firstFree)) +
+        '"><b>+' + coming + '</b> coming free</span>' : '') +
+      '</div>';
+
+    var counts = {};
+    all.forEach(function (row) { row.tags.forEach(function (t) { counts[t] = (counts[t] || 0) + 1; }); });
+    if (rvFilter && !counts[rvFilter]) rvFilter = null;
+    var chips = Object.keys(RV_KIND).filter(function (k) { return counts[k]; }).map(function (k) {
+      return '<button type="button" class="rv-chip" data-kind="' + k + '" aria-pressed="' +
+        (rvFilter === k) + '"><span class="rv-sw ' + RV_KIND[k].pill + '" aria-hidden="true"></span>' +
+        esc(RV_KIND[k].label) + ' <b>' + counts[k] + '</b></button>';
     }).join('');
+    // A FILTER WITH ONE THING IN IT FILTERS NOTHING: a room where everybody is
+    // simply enrolled gets the figures and no chips.
+    var mixed = Object.keys(counts).some(function (k) { return counts[k] !== all.length; });
+    $('#rv-top').html(figs + (mixed
+      ? '<div class="rv-chips" role="group" aria-label="Show only">' +
+        '<button type="button" class="rv-chip rv-chip-all" data-kind="" aria-pressed="' + !rvFilter +
+        '">Everyone <b>' + all.length + '</b></button>' + chips + '</div>'
+      : ''));
 
-    // THE GREEN TONES, COUNTED PER DAY, when the room holds more than one band.
-    // The ratio is set per day, so this is the figure the tones below exist to
-    // let somebody see - written out so nobody has to count shades down a
-    // column.
-    //
-    // ABOVE THE CHILDREN, under the day headings (Broc, 14 Oct 2026). It sat at
-    // the foot, over the pinned Placed row, which in a room of 20 put the one
-    // figure the staffing decision turns on below a scroll. The children under
-    // it run in the same band order, so each count heads its own block of tones.
-    //
-    // They count the TICKS, children holding a place on that day. Measured 14
-    // Oct 2026 that equals Placed on 173 of 175 cells, and on every cell of a
-    // mixed room; where a leaver and their replacement overlap it can be one
-    // more, and the dates on their rows already say why.
+    // --- The sheet ---------------------------------------------------------------
+    var $body = $('#rv-body'), keep = $body.data('room') === r.id ? $body.scrollTop() : 0;
+    if (!all.length) {
+      $body.html('<p class="text-muted p-3 mb-0">Nobody is on the ' + data.year +
+        ' board for this room.</p>').data('room', r.id);
+      $('#rv-foot-key').empty();
+      return;
+    }
+
+    // THE STAFFING BANDS, COUNTED PER DAY, when the room holds more than one -
+    // under the day heads and pinned with them, because the ratio is set per
+    // day and this is the figure the green tones exist to let somebody count.
+    var ps = r.placements || [];
     var bands = bandsPresent(ps);
     var bandRows = bands.map(function (b, i) {
-      return '<tr class="rs-band' + (i === bands.length - 1 ? ' rs-band-last' : '') + '"><th>' +
-        bandKey(b) + '</th>' +
-        Object.keys(DAYS).map(function (wd) {
-          var n = ps.filter(function (p) {
-            return p.age_band === b && p.days.indexOf(+wd) !== -1 &&
+      return '<tr class="rv-band' + (i === bands.length - 1 ? ' rv-band-last' : '') + '">' +
+        '<th class="rv-name">' + bandKey(b) + '</th>' +
+        WDS.map(function (wd) {
+          var k = ps.filter(function (p) {
+            return p.age_band === b && p.days.indexOf(wd) !== -1 &&
               p.status !== 'waitlist' && p.status !== 'no_position';
           }).length;
-          return '<td class="rs-day">' + (n || '<span class="text-muted">-</span>') + '</td>';
-        }).join('') + '<td class="rs-day"></td></tr>';
+          return '<td class="rv-bandn">' + (k || '<span class="text-muted">-</span>') + '</td>';
+        }).join('') + '<td></td></tr>';
     }).join('');
 
-    var body = '<div class="table-scroll mb-2"><table class="table table-sm align-middle mb-0 roster">' +
-      '<thead><tr>' + head + '</tr></thead><tbody>' + bandRows + rows + offeredRows +
-      heldOutRows + progressRows + totals + '</tbody></table></div>';
+    var head = '<thead><tr class="rv-hd"><th class="rv-name rv-hname">Child</th>' +
+      WDS.map(function (wd) { return rvDayHead(r, wd); }).join('') +
+      '<th class="rv-n rv-hn" title="Days each child attends; the week\'s place-days filled underneath">' +
+      'Days<div>' + placed + '</div></th></tr>' + bandRows + '</thead>';
 
-    if (holdless) {
-      body += '<p class="text-muted small mb-2">' + holdless + ' faded row' +
-        (holdless === 1 ? '' : 's') + ': on the board but not holding a place ' +
-        '(waitlist, or position not available), so not counted in the totals.</p>';
-    }
-    if (offered.length) {
-      body += '<p class="text-muted small mb-2">' +
-        '<i class="fa-solid fa-bookmark rs-held-key"></i> ' + offered.length +
-        ' famil' + (offered.length === 1 ? 'y has' : 'ies have') + ' been offered a place ' +
-        'here and not answered yet. The offer holds those days, so they are out of the ' +
-        'free figures below, but nobody is on the roll for them.</p>';
-    }
-    if (heldOut.length) {
-      body += '<p class="text-muted small mb-2">' +
-        '<i class="fa-solid fa-lock rs-hold-key"></i> ' + heldOut.length +
-        (heldOut.length === 1 ? ' child holds' : ' children hold') + ' no booking here and ' +
-        (heldOut.length === 1 ? 'a place is' : 'places are') + ' being kept for ' +
-        (heldOut.length === 1 ? 'them' : 'them') + ' anyway. Those days are out of the free ' +
-        'figures below, and nobody is on the roll for them.</p>';
-    }
-    if (progress.length) {
-      body += '<p class="text-muted small mb-2">' +
-        '<i class="fa-solid fa-list-check rs-prog-key"></i> ' + progress.length +
-        ' famil' + (progress.length === 1 ? 'y is' : 'ies are') + ' part-way through ' +
-        'enrolling for days here. Nothing is held for them yet, so those places still ' +
-        'count as free.</p>';
-    }
-    // Said once, in plain words, rather than as a legend of three icons. The
-    // control is not discoverable otherwise: an empty box does not look like a
-    // button, and this is the only place in the app a wish can be recorded.
-    body += '<p class="text-muted small mb-2">Click an empty day to record that a family ' +
-      'is waiting for it, or that it is being held for them. ' +
-      '<i class="fa-solid fa-hourglass-half rs-wish-key"></i> marks a day they have asked for; ' +
-      '<i class="fa-solid fa-lock rs-hold-key"></i> a day held for them, which is out of the ' +
-      'free figures below.</p>';
-    $('#cell-body').html(body);
+    var table = '<table class="rv-table">' +
+      '<colgroup><col class="rv-c-name">' + WDS.map(function () { return '<col class="rv-c-day">'; }).join('') +
+      '<col class="rv-c-n"></colgroup>' + head +
+      rvSection('Enrolled', s.roll, 'roll') +
+      rvSection('Offered, not enrolled yet', s.offered, 'offered') +
+      rvSection('Places kept', s.kept, 'kept') +
+      rvSection('Asked for a day', s.asked, 'asked') +
+      rvSection('In progress', s.progress, 'progress') +
+      '</table>';
+    $body.html(table).data('room', r.id);
+    rvApplyFilter();
+    $body.scrollTop(keep);
+
+    // THE DAY BLOCKS' KEY, only for the marks this room actually has - the chips
+    // above are the statuses, this is what a coloured box in a day means.
+    var used = {};
+    $body.find('.rv-b').each(function () {
+      ['rv-on', 'rv-from', 'rv-end', 'rv-hold', 'rv-want', 'rv-offer', 'rv-prog', 'rv-else'].forEach(function (k) {
+        if ($(this).hasClass(k)) used[k] = true;
+      }, this);
+    });
+    var KEY = [['rv-on', 'fa-check', 'attends'], ['rv-from', 'fa-right-to-bracket', 'starts later'],
+               ['rv-end', 'fa-right-from-bracket', 'coming free'], ['rv-hold', 'fa-lock', 'held'],
+               ['rv-want', 'fa-hourglass-half', 'waiting for the day'],
+               ['rv-offer', 'fa-bookmark', 'kept by an offer or re-enrolment'],
+               ['rv-prog', 'fa-list-check', 'being enrolled, nothing held'],
+               ['rv-else', null, 'in another room']];
+    $('#rv-foot-key').html(KEY.filter(function (k) { return used[k[0]]; }).map(function (k) {
+      return '<span class="rv-key"><span class="rv-b ' + k[0] + '" aria-hidden="true">' +
+        (k[1] ? '<i class="fa-solid ' + k[1] + '"></i>' : '') + '</span>' + esc(k[2]) + '</span>';
+    }).join('') + '<span class="rv-key rv-key-hint">Click an empty day to record that a family is ' +
+      'waiting for it, or that it is held for them.</span>');
+  }
+
+  /** Show only the rows carrying the pressed chip's tag, and their section heads. */
+  function rvApplyFilter() {
+    var $body = $('#rv-body');
+    $body.find('tr.rv-row').each(function () {
+      var tags = ($(this).attr('data-tags') || '').split(' ');
+      $(this).prop('hidden', !!rvFilter && tags.indexOf(rvFilter) === -1);
+    });
+    $body.find('tbody.rv-group').each(function () {
+      $(this).prop('hidden', !$(this).find('tr.rv-row:not([hidden])').length);
+    });
+    $('#rv-top .rv-chip').each(function () {
+      $(this).attr('aria-pressed', String(($(this).attr('data-kind') || null) === rvFilter));
+    });
+  }
+
+  /** Open a room's sheet. */
+  function openRoomSheet(id) {
+    if (!room(id)) return;
+    if (openRoom !== id) { rvFilter = null; $('#rv-body').removeData('room'); }
+    openRoom = id;
+    rvBack = null;
+    renderRoom();
+    roomModal.show();
   }
 
   // --- Whole-organisation overview -------------------------------------------
@@ -2347,11 +2731,16 @@
           var d = deepCell; deepCell = null;
           if (room(d.roomId)) { openCell = d; cellPanel.show(); }
         }
+        if (deepSheet) {
+          var ds = deepSheet; deepSheet = 0;
+          openRoomSheet(ds);
+        }
         syncUrl();
-        // Whichever of the two the panel is showing is redrawn from the fresh
-        // data, so saving a placement updates the panel you saved it from.
+        // The panel and the room sheet are redrawn from the fresh data, so
+        // saving something updates whatever you saved it from. Both, because a
+        // cell opened from a room keeps the room to go back to.
         if (openCell) renderCell();
-        else if (openRoom) renderRoom();
+        if (openRoom) renderRoom();
       })
       .fail(function () {
         $('#grid').html('<div class="text-center text-danger py-5">Could not load ' + year + '.</div>');
@@ -2700,7 +3089,7 @@
   // --- Work items ------------------------------------------------------------
   // --- The internal day waitlist ---------------------------------------------
   //
-  // Opened from an empty box on the room roster, which is where the days a child
+  // Opened from an empty box on the room sheet, which is where the days a child
   // does NOT attend are already on screen. Everything else in this app reads a
   // fact out of Kidsoft; this writes down something a parent said on the phone,
   // because Kidsoft's two waitlists cover permanent positions and per-date portal
@@ -2711,16 +3100,16 @@
   // from the other record without re-deriving who this is from the DOM.
   var wishCtx = null;
 
-  $('#cell-body').on('click keydown', '.rs-wishable', function (e) {
+  $('#rv-body').on('click keydown', 'td.rv-pick', function (e) {
     if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    openWish(openRoom, $(this).data('key'), +$(this).data('wd'));
+    openWish(openRoom, $(this).attr('data-key'), +$(this).data('wd'));
   });
 
   // THE CELL NO LONGER OFFERS A WAY IN (14 Aug 2026). "Someone waiting for Fri?"
   // closed the cell you were reading and rendered the room roster over it, which
   // is a long way to travel from a question to a name. Wishes are recorded where
-  // the empty days already are: the roster, reached from the room name, where
+  // the empty days already are: the room sheet, reached from the room name, where
   // clicking the empty box IS the whole interaction. A recorded wish still comes
   // BACK to this panel - it lands in "Asked for this day" beside the Kidsoft
   // requests, merged onto one row per family by cell_merge_requests().
@@ -2734,7 +3123,7 @@
   });
 
   /**
-   * @param roomId which room's roster this child sits in.
+   * @param roomId which room's sheet this child sits in.
    * @param key    'k' + Kidsoft ChildID, or 'p' + our placement row.
    * @param wd     the weekday whose box was clicked - ticked to start with, since
    *               it is the day the person is looking at. The others stay
@@ -2776,8 +3165,10 @@
     $('#wish-form [name=placement_id]').val(p.id || '');
 
     wishFill(kind);
-    wishModal = wishModal || new bootstrap.Modal('#wish-modal');
-    wishModal.show();
+    // ON TOP OF THE ROOM SHEET rather than in its place: it is one question
+    // about one box on it, and the answer shows up in that box. See
+    // window.showOnTop() in app.js; from the cell panel it simply opens.
+    wishModal = window.showOnTop(document.getElementById('wish-modal'));
   }
 
   /**
@@ -3013,15 +3404,9 @@
     // A name with a ChildID and no board row of its own to hand - a request
     // card, a re-enrolment hold, a held day. See childLink().
     .on('click', '.ch-link', function () {
-      var roomId = openRoom || (openCell ? openCell.roomId : null);
       window.openChild({ centre_id: CENTRE, ks_id: String($(this).data('ks')), year: year,
-                         room_id: roomId, name: $(this).text() }, function () { load(); });
-    })
-    .on('click', '.rs-open', function () { openCellFrom(this); })
-    .on('keydown', '.rs-open', function (e) {
-      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-      e.preventDefault();
-      openCellFrom(this);
+                         room_id: openCell ? openCell.roomId : null, name: $(this).text() },
+                       function () { load(); });
     });
 
 
@@ -3042,22 +3427,18 @@
     cellPanel.show();
   }
 
-  // The room name in the left column: the same panel, showing the whole room.
+  // The room name in the left column opens the room sheet, its own dialog.
   function openRoomFrom(el) {
-    var id = parseInt($(el).data('room'), 10);
-    if (!room(id)) return;
-    openCell = null;
-    openRoom = id;
-    renderRoom();
-    cellPanel.show();
+    openRoomSheet(parseInt($(el).data('room'), 10));
   }
 
-  $('#grid').on('click', '.cell', function () { openCellFrom(this); });
+  $('#grid').on('click', '.cell', function () { rvBack = null; openCellFrom(this); });
   $('#grid').on('click', '.grid-room', function () { openRoomFrom(this); });
   // Enter and Space open a cell, the way the role="button" on it promises.
   $('#grid').on('keydown', '.cell', function (e) {
     if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
     e.preventDefault();          // Space would otherwise scroll the grid
+    rvBack = null;
     openCellFrom(this);
   });
   $('#grid').on('keydown', '.grid-room', function (e) {
@@ -3065,7 +3446,150 @@
     e.preventDefault();
     openRoomFrom(this);
   });
-  $('#cell-panel').on('hidden.bs.offcanvas', function () { openCell = null; openRoom = null; });
+  $('#cell-panel').on('hidden.bs.offcanvas', function () {
+    openCell = null;
+    // "Back to the room" closes the panel and the room sheet comes back.
+    if (rvBack && rvBackNow) { var id = rvBack; rvBack = null; rvBackNow = false; openRoomSheet(id); }
+    rvBack = null;
+    rvBackNow = false;
+  });
+
+  // --- The room sheet's controls ------------------------------------------------
+
+  var rvBackNow = false;   // the panel is closing BECAUSE "Back to the room" was pressed
+
+  /** A day head on the sheet opens that cell - the shortlist and the actions are there. */
+  function rvToCell(wd) {
+    var id = openRoom;
+    if (!room(id)) return;
+    // Leaving on purpose: the sheet must not spring back when the panel's own
+    // dialogs close, and openRoom is cleared when it has gone.
+    rvAway = false;
+    $('#room-modal').one('hidden.bs.modal', function () {
+      openCell = { roomId: id, wd: wd };
+      rvBack = id;
+      renderCell();
+      cellPanel.show();
+    });
+    roomModal.hide();
+  }
+
+  $('#cell-back').on('click', function () {
+    rvBackNow = true;
+    cellPanel.hide();
+  });
+
+  $('#room-modal')
+    .on('hidden.bs.modal', function () {
+      // Stepped aside for another dialog: keep the room, it is coming back.
+      if (!rvAway) openRoom = null;
+    })
+    .on('click', '.rv-dh', function () { rvToCell(+$(this).data('wd')); })
+    .on('keydown', '.rv-dh', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+      e.preventDefault();
+      rvToCell(+$(this).data('wd'));
+    })
+    .on('click', '.rv-chip', function () {
+      var k = $(this).attr('data-kind') || null;
+      rvFilter = rvFilter === k ? null : k;
+      rvApplyFilter();
+    })
+    .on('click', '.rv-step', function () { rvStep(+$(this).data('step')); })
+    // Left and right arrows walk the rooms, the way the buttons do - unless a
+    // field has the keyboard, or the sheet is scrolled sideways and the arrows
+    // are what move it.
+    .on('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if ($(e.target).is('input, textarea, select, [contenteditable]')) return;
+      var b = document.getElementById('rv-body');
+      if (b && b.scrollWidth > b.clientWidth + 1) return;
+      e.preventDefault();
+      rvStep(e.key === 'ArrowLeft' ? -1 : 1);
+    })
+    // The names: each opens what the cell panel's same names open.
+    .on('click', '.place-chip', function () {
+      var p = findPlacementByKey($(this).attr('data-key'));
+      if (p) openPerson(p);
+    })
+    .on('keydown', '.place-chip', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+      e.preventDefault();
+      var p = findPlacementByKey($(this).attr('data-key'));
+      if (p) openPerson(p);
+    })
+    .on('click', '.ch-link', function () {
+      window.openChild({ centre_id: CENTRE, ks_id: String($(this).data('ks')), year: year,
+                         room_id: openRoom, name: $(this).text() }, function () { load(); });
+    })
+    .on('click', '.cp-open', function () {
+      window.openWaitlistFamily(+$(this).data('wl'), function () { load(); });
+    })
+    .on('click', '.work-open', function () { openWork($(this).data('id')); });
+
+  /** The room before or after this one in the grid's order, wrapping round. */
+  function rvStep(step) {
+    var r = room(openRoom);
+    if (!r || !data.rooms.length) return;
+    var n = data.rooms.length, i = data.rooms.indexOf(r);
+    var next = data.rooms[(i + step + n) % n];
+    rvFilter = null;
+    openRoom = next.id;
+    $('#rv-body').removeData('room');
+    renderRoom();
+    $('#rv-body').scrollTop(0);
+  }
+
+  // ANOTHER DIALOG TAKES THE ROOM SHEET'S PLACE, AND GIVES IT BACK.
+  //
+  // Every name on the sheet opens a dialog of its own - the child, the family's
+  // application, the enrolment - and Bootstrap 5 does not stack modals: two
+  // backdrops, one focus trap, and Esc closing the wrong one. So whichever
+  // dialog starts to open while the sheet is up is held back, the sheet steps
+  // aside, and the dialog opens once it has gone. That covers every way in -
+  // the names here, the search palette, a dialog that hands off to another -
+  // without any of them having to know the sheet exists.
+  //
+  // AND WHEN THE LAST OF THEM SHUTS, THE SHEET COMES BACK, on the same room,
+  // redrawn from whatever the dialog saved. Somebody who opened a child from
+  // the sheet was in the middle of reading the room.
+  //
+  // Not the two that stack ON it on purpose: a question (confirmModal, .modal-ask)
+  // and the wish dialog (window.showOnTop(), .modal-over) are about something on
+  // the sheet and are answered over it.
+  $(document).on('show.bs.modal', '.modal', function (e) {
+    if (e.target !== this || this.id === 'room-modal' || $(this).is('.modal-ask, .modal-over')) return;
+    if (!roomModal._isShown) return;
+    e.preventDefault();
+    var el = this;
+    rvAway = true;
+    $('#room-modal').one('hidden.bs.modal', function () {
+      bootstrap.Modal.getOrCreateInstance(el).show();
+    });
+    // Mid-fade, Bootstrap ignores hide(); wait for the sheet to finish appearing.
+    if (roomModal._isTransitioning) $('#room-modal').one('shown.bs.modal', function () { roomModal.hide(); });
+    else roomModal.hide();
+  });
+
+  $(document).on('hidden.bs.modal', '.modal', function (e) {
+    if (e.target !== this || this.id === 'room-modal' || !rvAway) return;
+    // After the handlers that open the NEXT dialog have run - a dialog that
+    // hands off to another closes first and opens the other from its own
+    // hidden event, and the sheet must wait for that one too.
+    setTimeout(function () {
+      if (!rvAway) return;
+      var up = $('.modal').toArray().some(function (m) {
+        if (m.id === 'room-modal') return false;
+        var inst = bootstrap.Modal.getInstance(m);
+        return $(m).hasClass('show') || !!(inst && inst._isShown);
+      });
+      if (up) return;
+      rvAway = false;
+      if (openRoom && room(openRoom)) { renderRoom(); roomModal.show(); }
+      else openRoom = null;
+    }, 0);
+  });
 
   /**
    * SHOW ME WHERE. One handler for every notice with a lit-btn in it: dim the
