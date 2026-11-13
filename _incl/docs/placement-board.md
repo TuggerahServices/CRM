@@ -783,6 +783,10 @@ See [support-plans.md](support-plans.md).
 
 ### The room roster carries the offered families too (9 Sep 2026)
 
+**History: the roster left this panel on 13 Nov 2026 and became the room sheet, a dialog of its
+own - see "THE ROOM SHEET" below.** What follows is why each kind of row is on it; the marks and
+the footnotes described here were replaced by the sheet's day blocks and its legend.
+
 The roster (`renderRoom()`) is the same panel showing one room across all five weekdays, and
 it had the same hole: `r.placements` holds placements, an offer is not one, so a room could
 read as sold on days nobody visible held. The offered families now sit **under the roll and
@@ -819,6 +823,79 @@ owner underneath, a **muted `fa-list-check`** on the days - the stage icon the W
 an In progress family, quiet because nothing is held. **The five marks now read: tick = attends,
 hourglass = asked for, bookmark = held by an offer, padlock = held, list-check = being enrolled
 for, nothing held.** Not in the totals; footnoted.
+
+## THE ROOM SHEET: one room, everyone, all week, in a dialog (13 Nov 2026)
+
+Broc: *"Instead of a flyout, I'd like a modal ... more information about that room across the
+week; including a more detailed table with days as columns and the children as rows, but not just
+enrolled children but also children 'In progress' (i.e. offered, waiting paperwork, etc), moving
+rooms, ending care, swapping days, dropping days, etc."* The room name on the grid opens
+`#room-modal` (`placement.php`), drawn by `renderRoom()` in `board.js`; the roster that used to be
+drawn into the 560px cell panel is gone, and so are its `.roster` / `.rs-*` styles.
+
+**NOTHING IS FETCHED AND NOTHING IS RE-DERIVED.** `roomSheet(r)` reads the board already on the
+page and only decides what each ROW is about:
+
+| row status (chip) | from | colour |
+|---|---|---|
+| Ending care | a roll row's `ends.kind = leaving` (cells_end_kind()) | `.st-ending_care` |
+| Moving rooms | `ends.kind = moving` here (out); or this room's `from` lining up with another room's `moving` for the same ChildID (in); or a re-enrolment hold from a different room | `.st-move_rooms` |
+| Swapping days | `dropping` on one day and a `from` on another, same child, same room | `.st-swap_days` |
+| Dropping days | `dropping` | `.st-dropping_day` |
+| Starting / Adding days | a `from` on all / some of their days | `.rv-p-start` |
+| Offered | `promised_children`, Kidsoft state "Offered in Kidsoft" or a legacy offer | `.st-offered` |
+| Waiting for paperwork | `promised_children` whose Kidsoft form is in ("Form submitted", "Re-submit required") | `.st-waiting_paperwork` |
+| Re-enrolment | `held_children` | `.rv-p-reenrol` |
+| Day held | `r.holds` on a roll row; `reserved_children` not on the roll | `.rv-p-held` |
+| Asked for a day | `r.wishes` and `requests` (Kidsoft request and internal wish said apart) | `.rv-p-asked` |
+| In progress | `in_progress` (`work_by_cell()`) | `.rv-p-prog` |
+
+- **THE ROW LABELS ARE THE WORKBOOK'S LEGEND.** `PLACEMENT_STATUS` was the spreadsheet's
+  vocabulary; here Kidsoft supplies the fact and nobody types the status. A status somebody DID
+  type on the editor (`ending_care`, `swap_days` ...) still names a row Kidsoft says nothing about,
+  in its own words; Kidsoft's answer wins where it has one.
+- **THE DAY BLOCKS ARE `dayStrip()`'s STATES DRAWN BIG**: green attends, hatched green starts later,
+  amber coming free (only where the place goes back on sale - `endingDays()`, the same rule as the
+  roll; a re-filled day or one in the last week of the year stays green and says why in its
+  title), pale amber held, blue waiting for the day, neutral kept by an offer or re-enrolment,
+  navy outline being enrolled with nothing held, grey "in another room" for a child split across
+  rooms (common: a Monday in Radiant Rainbows and Tuesday/Thursday in Little Angels). Each block
+  carries its date in words ("to 7/12/2026", "from 13/01/2027").
+- **THE LEGEND IS THE FILTER.** One chip per status present, with its count; pressing one shows
+  only those rows. No chips in a room where everybody is simply enrolled - a filter with one thing
+  in it filters nothing. **The dialog is always full height** so a filter does not collapse it.
+- **THE COLUMN HEADS ARE THE GRID CELL'S FIGURES** (placed/capacity, free/Full/over, offered,
+  held, the coming-free month, the In progress dot) over a bar of **one box per place**, and they
+  open that cell. The staffing band counts sit under them and are pinned with them.
+- **THE AGE IS READ ON THE BAND'S DAY**, `age_bands.on`, by `ageOn()`. `age_months` on a
+  placement is the age at 1 January (it exists for sub-quotas) and printed as an age it put
+  "1y 9m" on a child of two and a half.
+- **Rooms step** with the arrows in the heading or Left/Right (not while the sheet scrolls
+  sideways), wrapping round. `/placement?room=N` with no `wd` opens the sheet - it opened nothing
+  before, which Marketing's room links had worked around.
+
+**OTHER DIALOGS TAKE ITS PLACE AND GIVE IT BACK.** Bootstrap 5 does not stack modals, and every
+name on the sheet opens one (child, family, work item, the placement editor). A `show.bs.modal`
+handler holds back any dialog that starts to open while the sheet is up, the sheet steps aside,
+the dialog opens once it has gone - and **when the last dialog shuts, the sheet comes back on the
+same room**, redrawn from whatever was saved. A dialog that hands off to another (child -> family)
+is followed. Two exceptions stack ON it: `confirmModal()` and the wish/hold dialog, which opens
+through `window.showOnTop()` (app.js, `.modal-over`) because it is one question about one box on
+the sheet. A day head goes to the cell panel instead, which then shows **Whole room** to come back.
+
+**Verified 13 Nov 2026**, every non-GET request aborted in the browser: all 108 room sheets
+(seven centres, 2026 and 2027) with no `undefined`/`null`/`NaN`, no non-ASCII text, no sideways
+overflow at 1440 and no page error; row counts equal to an independent count of the payload in
+PHP (offered 13, paperwork 3, In progress 40, re-enrolment 14, ending care 79, dropping 5,
+enrolled 1,626); five chips opened the right child and the sheet came back after each; the family
+and work modals the same; the wish dialog stacked and returned the focus trap and scroll lock;
+Whole room, the steps, the arrows and the deep link. Swapping days, a Kidsoft request beside a
+wish, a submitted form, a child held out of care, a typed status and an over-capacity day have no
+live example and were checked by rewriting `/api/cells` in the browser. At 390px the dialog is
+full screen with a narrower pinned name column. **Not this change:** a click within ~150ms of the
+pointer leaving a tooltipped name throws "Cannot convert undefined or null to object" from
+Bootstrap (a tooltip disposed mid-fade by app.js's click handler). It happens anywhere in the app,
+is console noise only, and was left open on 10 Nov 2026; a fast scripted pointer hits it here.
 
 ## The green tones: staffing age bands (14 Oct 2026)
 

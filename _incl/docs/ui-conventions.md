@@ -234,6 +234,7 @@ fix would land on some of them.**
 | A child's name that opens their dialog, anywhere | `window.childName({centre_id, ks_id, name, cls})` - an `<a role="button">` so it wraps inside a sentence; plain text without a ChildID. One click handler, in `child-modal.js` | - |
 | A queue reason with the children it names linked | `window.reasonHtml(parts, text)` | `priority_reason_parts()` |
 | One enrolled child's dialog (chrome, every page) | `window.openChild({centre_id, ks_id, year, room_id}, done)`; `done` runs after a save - the search palette's fires `child:changed`, which the board listens for | `_incl/child-modal.php`, rendered by `layout_footer()` |
+| An existing dialog opened ON TOP of the one already up (one question about something on it) | `window.showOnTop(el)` - the `.modal-ask` layer as `.modal-over`, and the dialog underneath gets its scroll lock and focus trap back; see "No browser dialogs" | - |
 | Tooltip | any `title=` attribute (see below) | any `title=` attribute |
 
 **The last two arrived on 10 Sep 2026 for the same reason as the rest**: the family modal on the
@@ -831,7 +832,7 @@ action rather than saying OK; `danger` reds the button for anything that deletes
 the X, Esc and click-outside, for a question whose Cancel is itself an answer ("Different child"
 still starts the family). The full list is on the function.
 
-**It stacks over an open dialog, which nothing else here does** - see `handOff()` in
+**It stacks over an open dialog, which nothing else here did until 13 Nov 2026** - see `handOff()` in
 `child-modal.js`, where a whole dialog replaces another instead. A confirmation belongs on top of
 the dialog it is asking about, and Bootstrap 5.3.8 gets three things wrong when one modal opens
 over another. **Each was measured in Chromium, 10 Nov 2026:**
@@ -849,6 +850,13 @@ over another. **Each was measured in Chromium, 10 Nov 2026:**
   there until the next click.
 - **NOT wrong: the scroll lock.** Bootstrap's ScrollBarHelper saves the inline `overflow` it finds
   and restores it, so closing the question leaves the page under the dialog still locked.
+
+**`window.showOnTop(el)` shares the layer and the hand-back (13 Nov 2026)** for a dialog that
+already exists in the page: the Placement board's wish/hold dialog opens over the room sheet,
+because it asks about one box on it. Both go through one `rearmUnder()` in `app.js`, so the scroll
+lock and focus trap are handed back by one piece of code. Any OTHER dialog opened while the room
+sheet is up makes the sheet step aside and come back afterwards - see "THE ROOM SHEET" in
+[placement-board.md](placement-board.md).
 
 **An answer is given while its click is still being handled** - OK from the form's submit,
 anything else from `hide.bs.modal`, which Bootstrap fires inside the Cancel or X click - and that

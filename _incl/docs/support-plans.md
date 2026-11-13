@@ -261,6 +261,32 @@ whole table, none local). The backlog now skips `local_only = 1` and `direction 
 The modal still states the policy before the note is typed, which is where a staff member needs
 it.
 
+### Editing a note (12 Nov 2026)
+
+Broc: *"Can we please edit the notes in the ISP/BSP/logging section for everyone?"* The modal had
+said since 17 Sep that notes "are kept where they can be corrected", and nothing could correct one.
+(The ladder's step notes were always editable by every role; this is the contact log.)
+
+- **A pencil on each entry** (`commEditBtn()` in `support-plans.js`) puts the note back into the
+  form at the top, which then reads Save changes / Cancel and posts `/api/comms` `update`. Cancel,
+  a save, or opening another child puts the form back to logging.
+- **Only a `local_only` note that never went to Kidsoft**, checked by the server. Every note from
+  this screen is one; a note from the queue shown here by ChildID is not, and gets no pencil.
+- **Any role, any note, any age** - "for everyone" - inside the centres the user holds
+  (`api_require_centre()` off the row). It is never quiet: `edited_at` / `edited_by` print on the
+  entry ("edited by emily 12/11/2026 ...") and on the printed report, and `comm.update` in the audit
+  log keeps the words it replaced. A save with nothing changed writes nothing.
+- **The time survives**: the form takes a day, and the same day handed back keeps the logged time.
+- **A note folded into a stage change** (work modal) takes the new words onto that event too,
+  through the same `comms_folded_events()` that `delete` uses.
+- Only on this screen. The family modal and the work modal show the same internal notes and have no
+  pencil, because that was not asked for.
+
+Verified in Chromium as an administrator on a throwaway `local_only` note: log, edit, cancel, edit +
+save (summary, detail, channel), an unchanged save, the report row, and the server refusing note
+219 (not local) and an empty summary. No console errors. The test note was then removed with the
+app's own Delete; its audit rows (4951, 4952 and the `comm.delete`) remain.
+
 ## THE CHECKLIST OF STEPS, WHICH WAS REFUSED UNTIL THE TEAM NAMED IT
 
 This section used to say the opposite, and the reason it said so is the point:

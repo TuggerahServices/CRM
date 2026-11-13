@@ -91,6 +91,26 @@ function comms_resolve(?int $waitlistId, ?int $placementId, ?int $workItemId): a
     return $out;
 }
 
+/**
+ * The stage changes carrying this note's own words, for `delete` and `update`.
+ *
+ * THE SAME WORDS SIT ON THE STAGE CHANGE THEY WERE SAVED WITH. A work modal
+ * save that moves the stage writes the summary twice - onto the stage event
+ * through /api/work's `advance`, then here - and the timeline folds the two
+ * into one line (6 of 19 notes when this was written). Deleting or rewording
+ * only this row would leave the old sentence on screen as the stage change's
+ * note. The stage change stays; it is the item's own history. Same item, same
+ * exact words, written within two minutes: one act.
+ */
+function comms_folded_events(array $c): array {
+    return $c['work_item_id'] ? dbx()->query(
+        'SELECT e.id FROM work_item_events e
+          WHERE e.work_item_id = ? AND LEFT(e.note, 255) = ? COLLATE utf8mb4_bin
+            AND ABS(TIMESTAMPDIFF(SECOND, e.occurred_at, ?)) <= 120',
+        [(int)$c['work_item_id'], $c['summary'], $c['created_at']]
+    )->fetchAll('col') : [];
+}
+
 switch ($action) {
 
 // History for ONE family. Takes a single handle - a waitlist application or a
@@ -352,6 +372,76 @@ case 'add': {
     break;
 }
 
+// EDITING A NOTE (Broc, 12 Nov 2026: "Can we please edit the notes in the
+// ISP/BSP/logging section for everyone?"). Support plans' contact log had told
+// staff since 17 Sep that its notes "are kept where they can be corrected", and
+// nothing could correct one.
+//
+// ONLY A NOTE THAT NEVER TRAVELS. createComment has no update, so a note that
+// went to Kidsoft, or still might (the nightly backlog copies any that are not
+// local_only), would come to say one thing here and another there for good.
+// local_only is every support plan note and every internal one.
+//
+// ANYBODY WHO HOLDS THE CENTRE, ANY NOTE, AT ANY AGE - "for everyone". The
+// delete rule's worry, a log anyone can QUIETLY rewrite, is answered by it not
+// being quiet: the entry shows who edited it and when, and the audit row keeps
+// the words it replaced.
+case 'update': {
+    $id = (int)($_POST['id'] ?? 0);
+    $c = dbx()->query('SELECT * FROM communications WHERE id = ?', [$id], 'i')->fetch();
+    if (!$c) api_fail('Entry not found.');
+    api_require_centre((int)$c['centre_id']);
+    if (!$c['local_only'] || $c['kidsoft_pushed_at'] || $c['kidsoft_comment_id']) {
+        api_fail('This note goes to Kidsoft, where a comment cannot be changed. Add a correcting note instead.');
+    }
+
+    $summary   = trim((string)($_POST['summary'] ?? ''));
+    $direction = (string)($_POST['direction'] ?? $c['direction']);
+    $channel   = (string)($_POST['channel'] ?? $c['channel']);
+    $occurred  = trim((string)($_POST['occurred_at'] ?? ''));
+    $bodyText  = trim((string)($_POST['body'] ?? '')) ?: null;
+
+    if ($summary === '')                      api_fail('Write a short summary of the contact.');
+    if (!isset(COMM_DIRECTIONS[$direction]))  api_fail('Unknown direction.');
+    if (!isset(COMM_CHANNELS[$channel]))      api_fail('Unknown channel.');
+    if ($occurred !== '' && !date_create($occurred)) api_fail('That date is not valid.');
+    if (mb_strlen(comment_text($summary, $bodyText)) > COMMENT_MAX) {
+        api_fail('That note is too long to file. Keep it under ' . COMMENT_MAX . ' characters.');
+    }
+    // The form takes a DAY. The same day handed back keeps the time it was
+    // logged at, rather than turning every untouched date into midnight.
+    $occurredAt = ($occurred === '' || $occurred === substr($c['occurred_at'], 0, 10))
+        ? $c['occurred_at'] : date_create($occurred)->format('Y-m-d H:i:s');
+
+    $after  = ['summary' => $summary, 'body' => $bodyText, 'direction' => $direction,
+               'channel' => $channel, 'occurred_at' => $occurredAt];
+    $before = array_intersect_key($c, $after);
+    $diff   = audit_diff($before, $after);
+    if (!$diff) { echo json_encode(['ok' => true, 'unchanged' => true]); break; }
+
+    $events = isset($diff['summary']) ? comms_folded_events($c) : [];
+    $staff  = (string)($user['email'] ?? 'unknown');
+    dbx()->transaction(function ($db) use ($id, $after, $events, $staff) {
+        $db->query(
+            'UPDATE communications SET summary = ?, body = ?, direction = ?, channel = ?, occurred_at = ?,
+                    edited_at = NOW(), edited_by = ?
+              WHERE id = ?',
+            [$after['summary'], $after['body'], $after['direction'], $after['channel'],
+             $after['occurred_at'], $staff, $id]
+        );
+        // The stage change saved with these words says the new ones too, or the
+        // work modal's timeline would show the old sentence beside the new.
+        if ($events) {
+            $db->query('UPDATE work_item_events SET note = ? WHERE id IN (' . $db->whereIn($events) . ')',
+                       array_merge([$after['summary']], $events));
+        }
+    });
+    audit('comm.update', 'communication', $id, ['changes' => $diff, 'author' => $c['staff_email']]
+        + ($events ? ['event_notes_updated' => array_map('intval', $events)] : []));
+    echo json_encode(['ok' => true]);
+    break;
+}
+
 // Only the author may remove their own note, and only the same day. A contact
 // log that anyone can quietly rewrite is not a record anybody can rely on.
 //
@@ -374,19 +464,7 @@ case 'delete': {
         }
     }
 
-    // THE SAME WORDS SIT ON THE STAGE CHANGE THEY WERE SAVED WITH. A work modal
-    // save that moves the stage writes the summary twice - onto the stage event
-    // through /api/work's `advance`, then here - and the timeline folds the two
-    // into one line (6 of 19 notes when this was written). Deleting only this
-    // row would leave the sentence on screen as the stage change's note. The
-    // stage change stays; it is the item's own history. Same item, same exact
-    // words, written within two minutes: one act.
-    $events = $c['work_item_id'] ? dbx()->query(
-        'SELECT e.id FROM work_item_events e
-          WHERE e.work_item_id = ? AND LEFT(e.note, 255) = ? COLLATE utf8mb4_bin
-            AND ABS(TIMESTAMPDIFF(SECOND, e.occurred_at, ?)) <= 120',
-        [(int)$c['work_item_id'], $c['summary'], $c['created_at']]
-    )->fetchAll('col') : [];
+    $events = comms_folded_events($c);
 
     dbx()->transaction(function ($db) use ($id, $events) {
         if ($events) {
